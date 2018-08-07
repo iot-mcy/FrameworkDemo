@@ -5,9 +5,10 @@ import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.fastjson.FastJsonConverterFactory;
 
 /**
- * Created by mcy on 2018/3/22.
+ * 作者 mcy
+ * 日期 2018/8/7 17:34
+ *
  */
-
 public class Server {
 
     private volatile static Server sInstance;
@@ -39,5 +40,9 @@ public class Server {
 
     public Retrofit getRetrofit() {
         return retrofit;
+    }
+
+    public static <T> T getService(Class<T> tClass) {
+        return getInstance().getRetrofit().create(tClass);
     }
 }
