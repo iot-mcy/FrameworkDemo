@@ -1,5 +1,12 @@
 package com.mcy.framework.service;
 
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+
+import okhttp3.Interceptor;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import retrofit2.Retrofit;
 import retrofit2.adapter.rxjava2.RxJava2CallAdapterFactory;
 import retrofit2.converter.fastjson.FastJsonConverterFactory;
@@ -33,10 +40,30 @@ public class Server {
     protected Retrofit newRetrofit() {
         return new Retrofit.Builder()
                 .baseUrl("http://172.16.200.192:6621")
+//                .client(newClientBuilder().build())
                 .addConverterFactory(FastJsonConverterFactory.create())
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .build();
     }
+
+    private final long timeOut = 1000 * 30;
+
+    private OkHttpClient.Builder newClientBuilder(){
+       return new OkHttpClient.Builder()
+                .readTimeout(timeOut, TimeUnit.MILLISECONDS)
+                .connectTimeout(timeOut,TimeUnit.MILLISECONDS)
+                .writeTimeout(timeOut,TimeUnit.MILLISECONDS)
+                .addInterceptor(interceptor);
+    }
+
+    private Interceptor interceptor = new Interceptor() {
+        @Override
+        public Response intercept(Chain chain) throws IOException {
+            Request request= chain.request();
+            Request authorised = request.newBuilder().header("Token","mt-123-456-789").build();
+            return chain.proceed(authorised);
+        }
+    };
 
     public Retrofit getRetrofit() {
         return retrofit;
