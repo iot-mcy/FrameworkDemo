@@ -39,7 +39,7 @@ public class Server {
 
     protected Retrofit newRetrofit() {
         return new Retrofit.Builder()
-                .baseUrl("http://172.16.200.192:6621")
+                .baseUrl("http://172.16.202.15:8080")//http://localhost:8080/user.svc/get/meng
 //                .client(newClientBuilder().build())
                 .addConverterFactory(FastJsonConverterFactory.create())
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())

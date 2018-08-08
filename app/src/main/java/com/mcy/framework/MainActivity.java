@@ -35,8 +35,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        getData1();
-        getData2();
+//        getData1();
+//        getData2();
+        getUserByUsername(1000);
     }
 
     @Override
@@ -83,6 +84,24 @@ public class MainActivity extends AppCompatActivity {
                             Toast.makeText(MainActivity.this, "失败\n", Toast.LENGTH_LONG).show();
                         }
 
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        Toast.makeText(MainActivity.this, "失败\n" + throwable.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                }));
+    }
+
+    private void getUserByUsername(int userID) {
+        disposables.add(TestService.getUserByUserID(userID)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<String>() {
+                    @Override
+                    public void accept(String s) throws Exception {
+                        Toast.makeText(MainActivity.this, "成功\n" + s, Toast.LENGTH_LONG).show();
+                        data.set(s);
                     }
                 }, new Consumer<Throwable>() {
                     @Override

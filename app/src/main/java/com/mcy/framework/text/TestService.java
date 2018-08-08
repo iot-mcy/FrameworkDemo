@@ -37,4 +37,8 @@ public class TestService {
         return textService()
                 .getTradeQuotedPriceList2(object);
     }
+
+    public static Flowable<String> getUserByUserID(int name) {
+        return textService().getUserByUserID(name);
+    }
 }
