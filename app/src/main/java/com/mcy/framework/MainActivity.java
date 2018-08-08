@@ -6,6 +6,7 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.widget.Toast;
 
+import com.alibaba.fastjson.JSON;
 import com.mcy.framework.databinding.ActivityMainBinding;
 import com.mcy.framework.rxjava.Disposables;
 import com.mcy.framework.text.GetTradeQuotedPriceByID;
@@ -34,7 +35,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onStart() {
         super.onStart();
-        getData4();
+        getData1();
+        getData2();
     }
 
     @Override
@@ -43,15 +45,20 @@ public class MainActivity extends AppCompatActivity {
         disposables.disposeAll();
     }
 
-    private void getData3() {
+    private void getData1() {
         disposables.add(TestService.getData1()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Consumer<String>() {
+                .subscribe(new Consumer<GetTradeQuotedPriceByID>() {
                     @Override
-                    public void accept(String s) throws Exception {
-                        Toast.makeText(MainActivity.this, "成功\n" + s, Toast.LENGTH_LONG).show();
-                        data.set(s);
+                    public void accept(GetTradeQuotedPriceByID getTradeQuotedPriceByID) throws Exception {
+                        if (getTradeQuotedPriceByID != null) {
+                            String json = JSON.toJSONString(getTradeQuotedPriceByID);
+                            Toast.makeText(MainActivity.this, "成功\n" + json, Toast.LENGTH_LONG).show();
+                            data.set(json);
+                        } else {
+                            Toast.makeText(MainActivity.this, "失败\n", Toast.LENGTH_LONG).show();
+                        }
                     }
                 }, new Consumer<Throwable>() {
                     @Override
@@ -61,7 +68,7 @@ public class MainActivity extends AppCompatActivity {
                 }));
     }
 
-    private void getData4() {
+    private void getData2() {
         disposables.add(TestService.getData2()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
@@ -69,7 +76,9 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void accept(GetTradeQuotedPriceByID getTradeQuotedPriceByID) throws Exception {
                         if (getTradeQuotedPriceByID != null) {
-                            Toast.makeText(MainActivity.this, "成功\n", Toast.LENGTH_LONG).show();
+                            String json = JSON.toJSONString(getTradeQuotedPriceByID);
+                            Toast.makeText(MainActivity.this, "成功\n" + json, Toast.LENGTH_LONG).show();
+                            data.set(json);
                         } else {
                             Toast.makeText(MainActivity.this, "失败\n", Toast.LENGTH_LONG).show();
                         }

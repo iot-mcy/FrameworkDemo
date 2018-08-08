@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSONObject;
 import com.mcy.framework.service.Server;
 
 import io.reactivex.Flowable;
+import io.reactivex.Observable;
 
 /**
  * 作者 mcy
@@ -21,12 +22,12 @@ public class TestService {
     }
 
 
-    public static Flowable<String> getData1() {
+    public static Observable<GetTradeQuotedPriceByID> getData1() {
         JSONObject object = new JSONObject();
         object.put("ID", 1000);
 
         return textService()
-                .getTradeQuotedPriceList1(object);
+                .getTradeQuotedPriceList(object);
     }
 
     public static Flowable<GetTradeQuotedPriceByID> getData2() {

@@ -14,7 +14,7 @@ import retrofit2.http.POST;
 public interface TextServiceInterface {
 
     @POST("/TradeService.svc/GetTradeQuotedPriceByID")
-    Observable<String> getTradeQuotedPriceList(@Body JSONObject object);
+    Observable<GetTradeQuotedPriceByID> getTradeQuotedPriceList(@Body JSONObject object);
 
     @POST("/TradeService.svc/GetTradeQuotedPriceByID")
     Flowable<String> getTradeQuotedPriceList1(@Body JSONObject object);
