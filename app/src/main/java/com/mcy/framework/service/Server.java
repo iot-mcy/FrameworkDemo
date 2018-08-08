@@ -1,5 +1,7 @@
 package com.mcy.framework.service;
 
+import com.mcy.framework.BuildConfig;
+
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
@@ -14,15 +16,14 @@ import retrofit2.converter.fastjson.FastJsonConverterFactory;
 /**
  * 作者 mcy
  * 日期 2018/8/7 17:34
- *
  */
 public class Server {
 
     private volatile static Server sInstance;
 
-    private Retrofit retrofit;
+    private transient Retrofit retrofit;
 
-    public static Server getInstance() {
+    private static Server getInstance() {
         if (sInstance == null) {
             synchronized (Server.class) {
                 if (sInstance == null) {
@@ -37,35 +38,35 @@ public class Server {
         retrofit = newRetrofit();
     }
 
-    protected Retrofit newRetrofit() {
+    private Retrofit newRetrofit() {
+        String baseUrl = "http://" + BuildConfig.IP + ":" + BuildConfig.PORT;
         return new Retrofit.Builder()
-                .baseUrl("http://172.16.202.15:8080")
+                .baseUrl(baseUrl)
                 .client(newClientBuilder().build())
                 .addConverterFactory(FastJsonConverterFactory.create())
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .build();
     }
 
-    private final long timeOut = 1000 * 30;
-
-    private OkHttpClient.Builder newClientBuilder(){
-       return new OkHttpClient.Builder()
+    private OkHttpClient.Builder newClientBuilder() {
+        long timeOut = 1000 * 30;
+        return new OkHttpClient.Builder()
                 .readTimeout(timeOut, TimeUnit.MILLISECONDS)
-                .connectTimeout(timeOut,TimeUnit.MILLISECONDS)
-                .writeTimeout(timeOut,TimeUnit.MILLISECONDS)
+                .connectTimeout(timeOut, TimeUnit.MILLISECONDS)
+                .writeTimeout(timeOut, TimeUnit.MILLISECONDS)
                 .addInterceptor(interceptor);
     }
 
     private Interceptor interceptor = new Interceptor() {
         @Override
         public Response intercept(Chain chain) throws IOException {
-            Request request= chain.request();
-            Request authorised = request.newBuilder().header("Token","mt-123-456-789").build();
+            Request request = chain.request();
+            Request authorised = request.newBuilder().header("Token", "mt-123-456-789").build();
             return chain.proceed(authorised);
         }
     };
 
-    public Retrofit getRetrofit() {
+    private Retrofit getRetrofit() {
         return retrofit;
     }
 

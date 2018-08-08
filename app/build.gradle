@@ -10,9 +10,22 @@ android {
         versionName "1.0"
         testInstrumentationRunner "android.support.test.runner.AndroidJUnitRunner"
     }
+
     dataBinding { enabled true }
+
     buildTypes {
+
+        debug {
+            buildConfigField("String", "IP", "\"172.16.202.15\"")
+            buildConfigField("int", "PORT", "8080")
+            applicationIdSuffix = ".debug"
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+
         release {
+            buildConfigField("String", "IP", "\"192.168.1.105\"")
+            buildConfigField("int", "PORT", "8080")
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
