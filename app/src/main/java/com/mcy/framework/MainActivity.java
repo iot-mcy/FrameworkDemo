@@ -1,20 +1,56 @@
 package com.mcy.framework;
 
+import android.Manifest;
+import android.annotation.SuppressLint;
+import android.annotation.TargetApi;
+import android.content.Context;
+import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.content.pm.ProviderInfo;
 import android.databinding.DataBindingUtil;
 import android.databinding.ObservableField;
+import android.os.Build;
 import android.os.Bundle;
+import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
+import android.view.View;
 import android.widget.Toast;
 
 import com.alibaba.fastjson.JSON;
+import com.bumptech.glide.Glide;
+import com.luck.picture.lib.PictureSelector;
+import com.luck.picture.lib.config.PictureConfig;
+import com.luck.picture.lib.config.PictureMimeType;
+import com.luck.picture.lib.entity.LocalMedia;
 import com.mcy.framework.databinding.ActivityMainBinding;
 import com.mcy.framework.rxjava.Disposables;
 import com.mcy.framework.text.GetTradeQuotedPriceByID;
 import com.mcy.framework.text.TestService;
+import com.tbruyelle.rxpermissions2.RxPermissions;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.functions.Consumer;
 import io.reactivex.schedulers.Schedulers;
+import okhttp3.MediaType;
+import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
+
+import static com.luck.picture.lib.config.PictureMimeType.ofVideo;
+import static java.lang.System.currentTimeMillis;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -24,12 +60,16 @@ public class MainActivity extends AppCompatActivity {
 
     private Disposables disposables = new Disposables();
 
+    private RxPermissions rxPermissions;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
         binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
         binding.setActivity(this);
+        rxPermissions = new RxPermissions(this);
+        EventBus.getDefault().register(this);
+
     }
 
     @Override
@@ -37,13 +77,14 @@ public class MainActivity extends AppCompatActivity {
         super.onStart();
 //        getData1();
 //        getData2();
-        getUserByUsername(1000);
+//        getUserByUsername(1000);
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         disposables.disposeAll();
+        EventBus.getDefault().unregister(this);
     }
 
     private void getData1() {
@@ -110,4 +151,324 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }));
     }
+
+    private void upload() {
+        File file = new File("");
+        MultipartBody.Builder builder = new MultipartBody.Builder().setType(MultipartBody.FORM);
+        RequestBody requestBody = RequestBody.create(MediaType.parse("multipart/form-data"), file);
+        builder.addFormDataPart("imgfile", file.getName(), requestBody);
+        List<MultipartBody.Part> parts = builder.build().parts();
+
+    }
+
+    /**
+     * 正式上传单张图片的地方
+     *
+     * @param filePath
+     */
+    private void upLoad(String filePath) {
+        File file = new File(filePath);
+
+        RequestBody requestFile = RequestBody.create(MediaType.parse("multipart/form-data"), file);
+        MultipartBody.Part part = MultipartBody.Part.createFormData("file", file.getName(), requestFile);
+
+        disposables.add(TestService.uploadMemberIcon(part)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<String>() {
+                    @Override
+                    public void accept(String s) throws Exception {
+                        Log.i("", "");
+                        data.set(s);
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        Log.i("", "");
+                        data.set(throwable.getMessage());
+                    }
+                }));
+    }
+
+    /**
+     * 正式上传单张图片的地方
+     *
+     * @param localMedia
+     */
+    private void upLoads(List<LocalMedia> localMedia) {
+
+        List<MultipartBody.Part> parts = new ArrayList<>();
+        for (LocalMedia filePath : localMedia) {
+            File file = new File(filePath.getPath());
+            RequestBody requestFile = RequestBody.create(MediaType.parse("multipart/form-data"), file);
+            MultipartBody.Part part = MultipartBody.Part.createFormData("file", file.getName(), requestFile);
+            parts.add(part);
+        }
+        String json = JSON.toJSONString(localMedia);
+        disposables.add(TestService.uploadAttachments(parts)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<String>() {
+                    @Override
+                    public void accept(String s) throws Exception {
+                        Log.i("", "");
+                        data.set(s);
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        Log.i("", "");
+                        data.set(throwable.getMessage());
+                    }
+                }));
+    }
+
+    /**
+     * 上传单张图片
+     *
+     * @param view
+     */
+    public void setOnClickByUpload(View view) {
+        if (localMedia.size() > 0) {
+            String path = localMedia.get(0).getPath();
+            upLoad(path);
+        }
+    }
+
+    /**
+     * 上传多个附件
+     *
+     * @param view
+     */
+    public void setOnClickByUploads(View view) {
+        if (localMedia.size() > 0) {
+            upLoads(localMedia);
+        }
+    }
+
+    /**
+     * 下载
+     *
+     * @param view
+     */
+    @SuppressLint("CheckResult")
+    @TargetApi(Build.VERSION_CODES.M)
+    public void setOnClickByDownload(View view) {
+        rxPermissions
+                .request(Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        Manifest.permission.READ_EXTERNAL_STORAGE)
+                .subscribe(new Consumer<Boolean>() {
+
+                    @Override
+                    public void accept(Boolean aBoolean) throws Exception {
+                        if (aBoolean) { // Always true pre-M
+                            Log.i("", "");
+                            downloadFile("");
+                        } else {
+                            // Oups permission denied
+                            Log.i("", "");
+                        }
+                    }
+                });
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void OnEventMsg(DownloadProgress downloadProgress) {
+        final float f = downloadProgress.getCurrentLength() / downloadProgress.getTotalLength() * 100;
+        binding.btDownload.setText(f + "%");
+    }
+
+    private void setProgress(long currentLength, long totalLength) {
+        long now = currentTimeMillis();
+        if (now < updateTiming) return;
+        updateTiming = now + 10000; // 限制1秒更新一次。
+
+        EventBus.getDefault().post(new DownloadProgress(currentLength, totalLength));
+    }
+
+    private volatile long updateTiming;
+
+    private void downloadFile(String s) {
+        final String fileName = "VID_20180420_193937.mp4";
+        disposables.add(TestService.downloadAttaachments(fileName)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<ResponseBody>() {
+                    @Override
+                    public void accept(ResponseBody responseBody) throws Exception {
+                        Log.i("", "");
+//                        writeResponseBodyToDisk(responseBody);
+
+//                        File imagePath = new File(Environment.getExternalStorageDirectory(), "download");
+//                        File newFile = new File(imagePath, "IMG_123.jpg");
+//                        Uri contentUri = FileProvider.getUriForFile(MainActivity.this, getFileProviderAuthority(MainActivity.this), newFile);
+
+                        File file = FileUtils.createFile(MainActivity.this, "视频1.mp4");
+
+                        //保存到本地
+                        FileUtils.writeFile2Disk(responseBody, file, new HttpCallBack() {
+
+                            @SuppressLint("SetTextI18n")
+                            @Override
+                            void onLoading(long currentLength, long totalLength) {
+                                setProgress(currentLength, totalLength);
+                            }
+
+                            @Override
+                            void onError(String s) {
+                                data.set(s);
+                            }
+                        });
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        Log.i("", "");
+                    }
+                }));
+    }
+
+    /**
+     * 获取FileProvider的auth
+     */
+    private static String getFileProviderAuthority(Context context) {
+        try {
+            for (ProviderInfo provider : context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_PROVIDERS).providers) {
+                if (FileProvider.class.getName().equals(provider.name) && provider.authority.endsWith(".file_provider")) {
+                    return provider.authority;
+                }
+            }
+        } catch (PackageManager.NameNotFoundException ignore) {
+        }
+        return "";
+    }
+
+    private boolean writeResponseBodyToDisk(ResponseBody body) {
+        try {
+            // todo change the file location/name according to your needs
+            File futureStudioIconFile = new File(getCacheDir() + File.separator + "Future Studio Icon.png");
+
+            InputStream inputStream = null;
+            OutputStream outputStream = null;
+
+            try {
+                byte[] fileReader = new byte[4096];
+
+                long fileSize = body.contentLength();
+                long fileSizeDownloaded = 0;
+
+                inputStream = body.byteStream();
+                outputStream = new FileOutputStream(futureStudioIconFile);
+
+                while (true) {
+                    int read = inputStream.read(fileReader);
+
+                    if (read == -1) {
+                        break;
+                    }
+
+                    outputStream.write(fileReader, 0, read);
+
+                    fileSizeDownloaded += read;
+
+                    Log.d("", "file download: " + fileSizeDownloaded + " of " + fileSize);
+                }
+
+                outputStream.flush();
+
+                return true;
+            } catch (IOException e) {
+                return false;
+            } finally {
+                if (inputStream != null) {
+                    inputStream.close();
+                }
+
+                if (outputStream != null) {
+                    outputStream.close();
+                }
+            }
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+
+    /**
+     * 这里是已经选好的图片
+     */
+    List<LocalMedia> localMedia = new ArrayList<>();
+
+    /**
+     * 从相册中选图
+     *
+     * @param view
+     */
+    public void setOnClickByPhoto(View view) {
+        // 进入相册 以下是例子：用不到的api可以不写
+        PictureSelector.create(MainActivity.this)
+                .openGallery(ofVideo())//全部.PictureMimeType.ofAll()、图片.ofImage()、视频.ofVideo()、音频.ofAudio()
+//                .theme()//主题样式(不设置为默认样式) 也可参考demo values/styles下 例如：R.style.picture.white.style
+                .maxSelectNum(9)// 最大图片选择数量 int
+                .minSelectNum(1)// 最小选择数量 int
+                .imageSpanCount(3)// 每行显示个数 int
+                .selectionMode(PictureConfig.MULTIPLE)// 多选 or 单选 PictureConfig.MULTIPLE or PictureConfig.SINGLE
+                .previewImage(true)// 是否可预览图片 true or false
+//                .previewVideo(true)// 是否可预览视频 true or false
+//                .enablePreviewAudio(true) // 是否可播放音频 true or false
+                .isCamera(true)// 是否显示拍照按钮 true or false
+                .imageFormat(PictureMimeType.PNG)// 拍照保存图片格式后缀,默认jpeg
+                .isZoomAnim(true)// 图片列表点击 缩放效果 默认true
+                .sizeMultiplier(0.5f)// glide 加载图片大小 0~1之间 如设置 .glideOverride()无效
+//                .setOutputCameraPath("/CustomPath")// 自定义拍照保存路径,可不填
+                .enableCrop(false)// 是否裁剪 true or false
+                .compress(false)// 是否压缩 true or false
+//                .glideOverride()// int glide 加载宽高，越小图片列表越流畅，但会影响列表图片浏览的清晰度
+//                .withAspectRatio()// int 裁剪比例 如16:9 3:2 3:4 1:1 可自定义
+//                .hideBottomControls()// 是否显示uCrop工具栏，默认不显示 true or false
+                .isGif(true)// 是否显示gif图片 true or false
+//                .compressSavePath(getPath())//压缩图片保存地址
+//                .freeStyleCropEnabled(true)// 裁剪框是否可拖拽 true or false
+//                .circleDimmedLayer(false)// 是否圆形裁剪 true or false
+//                .showCropFrame()// 是否显示裁剪矩形边框 圆形裁剪时建议设为false   true or false
+//                .showCropGrid()// 是否显示裁剪矩形网格 圆形裁剪时建议设为false    true or false
+//                .openClickSound()// 是否开启点击声音 true or false
+                .selectionMedia(localMedia)// 是否传入已选图片 List<LocalMedia> list
+                .previewEggs(true)// 预览图片时 是否增强左右滑动图片体验(图片滑动一半即可看到上一张是否选中) true or false
+//                .cropCompressQuality()// 裁剪压缩质量 默认90 int
+//                .minimumCompressSize(100)// 小于100kb的图片不压缩
+//                .synOrAsy(true)//同步true或异步false 压缩 默认同步
+//                .cropWH()// 裁剪宽高比，设置如果大于图片本身宽高则无效 int
+//                .rotateEnabled() // 裁剪是否可旋转图片 true or false
+//                .scaleEnabled()// 裁剪是否可放大缩小图片 true or false
+//                .videoQuality()// 视频录制质量 0 or 1 int
+//                .videoMaxSecond(15)// 显示多少秒以内的视频or音频也可适用 int
+//                .videoMinSecond(10)// 显示多少秒以内的视频or音频也可适用 int
+//                .recordVideoSecond()//视频秒数录制 默认60s int
+//                .isDragFrame(false)// 是否可拖动裁剪框(固定)
+                .forResult(PictureConfig.CHOOSE_REQUEST);//结果回调onActivityResult code
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (resultCode == RESULT_OK) {
+            switch (requestCode) {
+                case PictureConfig.CHOOSE_REQUEST:
+                    // 图片、视频、音频选择结果回调
+                    List<LocalMedia> selectList = PictureSelector.obtainMultipleResult(data);
+                    localMedia = selectList;
+                    Glide.with(this).load(localMedia.get(0).getPath()).into(binding.imageView);
+                    // 例如 LocalMedia 里面返回三种path
+                    // 1.media.getPath(); 为原图path
+                    // 2.media.getCutPath();为裁剪后path，需判断media.isCut();是否为true  注意：音视频除外
+                    // 3.media.getCompressPath();为压缩后path，需判断media.isCompressed();是否为true  注意：音视频除外
+                    // 如果裁剪并压缩了，以取压缩路径为准，因为是先裁剪后压缩的
+//                    adapter.setList(selectList);
+//                    adapter.notifyDataSetChanged();
+                    break;
+            }
+        }
+    }
+
 }

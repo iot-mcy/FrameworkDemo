@@ -16,7 +16,7 @@ android {
     buildTypes {
 
         debug {
-            buildConfigField("String", "IP", "\"172.16.202.15\"")
+            buildConfigField("String", "IP", "\"192.168.43.35\"")
             buildConfigField("int", "PORT", "8080")
             applicationIdSuffix = ".debug"
             minifyEnabled false
@@ -34,6 +34,7 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
+    //noinspection GradleCompatible
     implementation 'com.android.support:appcompat-v7:27.1.1'
     implementation 'com.android.support.constraint:constraint-layout:1.1.2'
 
@@ -43,6 +44,11 @@ dependencies {
     implementation 'com.squareup.retrofit2:adapter-rxjava2:2.4.0'
     implementation 'com.squareup.okhttp3:logging-interceptor:3.9.0'
     implementation 'org.ligboy.retrofit2:converter-fastjson-android:2.1.0'
+
+    implementation 'org.greenrobot:eventbus:3.1.1'
+
+    implementation 'com.github.LuckSiege.PictureSelector:picture_library:v2.2.3'
+    implementation 'com.github.tbruyelle:rxpermissions:0.10.2'
 
     testImplementation 'junit:junit:4.12'
     androidTestImplementation 'com.android.support.test:runner:1.0.2'

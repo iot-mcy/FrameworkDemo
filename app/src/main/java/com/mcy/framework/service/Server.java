@@ -49,7 +49,7 @@ public class Server {
     }
 
     private OkHttpClient.Builder newClientBuilder() {
-        long timeOut = 1000 * 30;
+        long timeOut = 1000 * 60 * 60;
         return new OkHttpClient.Builder()
                 .readTimeout(timeOut, TimeUnit.MILLISECONDS)
                 .connectTimeout(timeOut, TimeUnit.MILLISECONDS)

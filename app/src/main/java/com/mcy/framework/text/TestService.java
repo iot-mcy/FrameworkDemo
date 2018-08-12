@@ -3,8 +3,12 @@ package com.mcy.framework.text;
 import com.alibaba.fastjson.JSONObject;
 import com.mcy.framework.service.Server;
 
+import java.util.List;
+
 import io.reactivex.Flowable;
 import io.reactivex.Observable;
+import okhttp3.MultipartBody;
+import okhttp3.ResponseBody;
 
 /**
  * 作者 mcy
@@ -40,5 +44,17 @@ public class TestService {
 
     public static Flowable<String> getUserByUserID(int name) {
         return textService().getUserByUserID(name);
+    }
+
+    public static Observable<String> uploadMemberIcon(MultipartBody.Part part) {
+        return textService().uploadMemberIcon(part);
+    }
+
+    public static Observable<String> uploadAttachments(List<MultipartBody.Part> parts) {
+        return textService().uploadAttachments(parts);
+    }
+
+    public static Observable<ResponseBody> downloadAttaachments(String fileName){
+        return textService().download(fileName);
     }
 }
