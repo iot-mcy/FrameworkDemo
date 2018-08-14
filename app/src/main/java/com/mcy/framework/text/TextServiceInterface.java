@@ -9,6 +9,7 @@ import io.reactivex.Observable;
 import okhttp3.MultipartBody;
 import okhttp3.ResponseBody;
 import retrofit2.http.Body;
+import retrofit2.http.GET;
 import retrofit2.http.Multipart;
 import retrofit2.http.POST;
 import retrofit2.http.Part;
@@ -29,6 +30,9 @@ public interface TextServiceInterface {
     @POST("/user.svc/getUserByID/{userID}")
     Flowable<String> getUserByUserID(@Path("userID") int name);
 
+    @POST("/user.svc/login")
+    Flowable<String> login(@Body JSONObject object);
+
     /**
      * 上传单张图片
      */
@@ -42,4 +46,7 @@ public interface TextServiceInterface {
 
     @POST("/user.svc/download/{filename}")
     Observable<ResponseBody> download(@Path("filename") String filename);
+
+    @GET("/wireless/taobao4android/latest/701483.apk")
+    Observable<ResponseBody> downloadApk();
 }

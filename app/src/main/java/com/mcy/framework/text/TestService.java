@@ -42,6 +42,13 @@ public class TestService {
                 .getTradeQuotedPriceList2(object);
     }
 
+    public static Flowable<String> login(String username, String password) {
+        JSONObject object = new JSONObject();
+        object.put("username", username);
+        object.put("password", password);
+        return textService().login(object);
+    }
+
     public static Flowable<String> getUserByUserID(int name) {
         return textService().getUserByUserID(name);
     }
@@ -54,7 +61,11 @@ public class TestService {
         return textService().uploadAttachments(parts);
     }
 
-    public static Observable<ResponseBody> downloadAttaachments(String fileName){
+    public static Observable<ResponseBody> downloadAttaachments(String fileName) {
         return textService().download(fileName);
+    }
+
+    public static Observable<ResponseBody> downloadApk() {
+        return textService().downloadApk();
     }
 }

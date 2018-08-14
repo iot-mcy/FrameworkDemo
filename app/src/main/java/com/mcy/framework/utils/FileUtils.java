@@ -1,4 +1,4 @@
-package com.mcy.framework;
+package com.mcy.framework.utils;
 
 import android.content.Context;
 import android.content.Intent;
@@ -8,20 +8,20 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
 import android.support.v4.content.FileProvider;
+import android.util.Log;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
 import okhttp3.ResponseBody;
-import okio.ForwardingSource;
 
 /**
- * @Description: 描述
- * @AUTHOR 刘楠  Create By 2016/10/27 0027 15:56
+ * 作者 mcy
+ * 日期 2018/8/14 10:34
+ * 文件处理工具
  */
 public class FileUtils {
 
@@ -102,55 +102,59 @@ public class FileUtils {
         return downloadDir;
     }
 
-    public static void writeFile2Disk(ResponseBody response, File file, HttpCallBack httpCallBack) {
-
-        InputStream inputStream = null;
-        OutputStream outputStream = null;
-//        new ForwardingSource(response.source())
+    /**
+     * 将下载的附件写入磁盘
+     *
+     * @param context
+     * @param body
+     * @param filename
+     * @return
+     */
+    public static boolean writeResponseBodyToDisk(Context context, ResponseBody body, String filename) {
         try {
-            long currentLength = 0;
-            long totalLength = response.contentLength();
+            File file = createFile(context, filename);
 
-            inputStream = response.byteStream();
-            outputStream = new FileOutputStream(file);
+            InputStream inputStream = null;
+            OutputStream outputStream = null;
 
-            byte[] buff = new byte[2048];
+            try {
+                byte[] fileReader = new byte[4096];
 
-            while (true) {
-                int read = inputStream.read(buff);
-                if (read == -1) {
-                    break;
+                long fileSize = body.contentLength();
+                long fileSizeDownloaded = 0;
+
+                inputStream = body.byteStream();
+                outputStream = new FileOutputStream(file);
+
+                while (true) {
+                    int read = inputStream.read(fileReader);
+                    if (read == -1) {
+                        break;
+                    }
+
+                    outputStream.write(fileReader, 0, read);
+
+                    fileSizeDownloaded += read;
+
+                    Log.d("", "file download: " + fileSizeDownloaded + " of " + fileSize);
                 }
-                outputStream.write(buff, 0, read);
 
-                currentLength += read;
-                httpCallBack.onLoading(currentLength, totalLength);
-            }
-            outputStream.flush();
+                outputStream.flush();
 
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-            httpCallBack.onError(e.getMessage());
-        } catch (IOException e) {
-            e.printStackTrace();
-            httpCallBack.onError(e.getMessage());
-        } finally {
-            if (outputStream != null) {
-                try {
-                    outputStream.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    httpCallBack.onError(e.getMessage());
-                }
-            }
-            if (inputStream != null) {
-                try {
+                return true;
+            } catch (IOException e) {
+                return false;
+            } finally {
+                if (inputStream != null) {
                     inputStream.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                    httpCallBack.onError(e.getMessage());
+                }
+
+                if (outputStream != null) {
+                    outputStream.close();
                 }
             }
+        } catch (IOException e) {
+            return false;
         }
     }
 }

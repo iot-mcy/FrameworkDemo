@@ -3,15 +3,11 @@ package com.mcy.framework;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
-import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
-import android.content.pm.ProviderInfo;
 import android.databinding.DataBindingUtil;
 import android.databinding.ObservableField;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v4.content.FileProvider;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
@@ -27,6 +23,8 @@ import com.mcy.framework.databinding.ActivityMainBinding;
 import com.mcy.framework.rxjava.Disposables;
 import com.mcy.framework.text.GetTradeQuotedPriceByID;
 import com.mcy.framework.text.TestService;
+import com.mcy.framework.utils.DownloadProgress;
+import com.mcy.framework.utils.FileUtils;
 import com.tbruyelle.rxpermissions2.RxPermissions;
 
 import org.greenrobot.eventbus.EventBus;
@@ -34,10 +32,6 @@ import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -50,7 +44,6 @@ import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 
 import static com.luck.picture.lib.config.PictureMimeType.ofVideo;
-import static java.lang.System.currentTimeMillis;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -69,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
         binding.setActivity(this);
         rxPermissions = new RxPermissions(this);
         EventBus.getDefault().register(this);
-
+        binding.progressBar.setMax(100);
     }
 
     @Override
@@ -148,6 +141,30 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void accept(Throwable throwable) throws Exception {
                         Toast.makeText(MainActivity.this, "失败\n" + throwable.getMessage(), Toast.LENGTH_LONG).show();
+                    }
+                }));
+    }
+
+    /**
+     * 登录
+     *
+     * @param view
+     */
+    public void setOnClickByLogin(View view) {
+        disposables.add(TestService.login("mcy", "123456")
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<String>() {
+                    @Override
+                    public void accept(String s) throws Exception {
+                        Log.i("", "");
+                        data.set(s);
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        Log.i("", "");
+                        data.set(throwable.getMessage());
                     }
                 }));
     }
@@ -263,7 +280,7 @@ public class MainActivity extends AppCompatActivity {
                     public void accept(Boolean aBoolean) throws Exception {
                         if (aBoolean) { // Always true pre-M
                             Log.i("", "");
-                            downloadFile("");
+                            downloadFile("701483.apk");
                         } else {
                             // Oups permission denied
                             Log.i("", "");
@@ -274,51 +291,31 @@ public class MainActivity extends AppCompatActivity {
 
     @Subscribe(threadMode = ThreadMode.MAIN)
     public void OnEventMsg(DownloadProgress downloadProgress) {
-        final float f = downloadProgress.getCurrentLength() / downloadProgress.getTotalLength() * 100;
+        int f = (int) ((downloadProgress.getCurrentLength() * 100) / downloadProgress.getTotalLength());
+        Log.d("DownloadProgress", f + "%");
         binding.btDownload.setText(f + "%");
+
+        binding.progressBar.setProgress(f);
     }
 
-    private void setProgress(long currentLength, long totalLength) {
-        long now = currentTimeMillis();
-        if (now < updateTiming) return;
-        updateTiming = now + 10000; // 限制1秒更新一次。
-
-        EventBus.getDefault().post(new DownloadProgress(currentLength, totalLength));
-    }
-
-    private volatile long updateTiming;
-
-    private void downloadFile(String s) {
-        final String fileName = "VID_20180420_193937.mp4";
-        disposables.add(TestService.downloadAttaachments(fileName)
+    /**
+     * 正式下载附件的地方
+     *
+     * @param fileName
+     */
+    private void downloadFile(final String fileName) {
+        disposables.add(TestService.downloadApk()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Consumer<ResponseBody>() {
                     @Override
-                    public void accept(ResponseBody responseBody) throws Exception {
+                    public void accept(final ResponseBody responseBody) throws Exception {
                         Log.i("", "");
-//                        writeResponseBodyToDisk(responseBody);
-
-//                        File imagePath = new File(Environment.getExternalStorageDirectory(), "download");
-//                        File newFile = new File(imagePath, "IMG_123.jpg");
-//                        Uri contentUri = FileProvider.getUriForFile(MainActivity.this, getFileProviderAuthority(MainActivity.this), newFile);
-
-                        File file = FileUtils.createFile(MainActivity.this, "视频1.mp4");
-
-                        //保存到本地
-                        FileUtils.writeFile2Disk(responseBody, file, new HttpCallBack() {
-
-                            @SuppressLint("SetTextI18n")
-                            @Override
-                            void onLoading(long currentLength, long totalLength) {
-                                setProgress(currentLength, totalLength);
-                            }
-
-                            @Override
-                            void onError(String s) {
-                                data.set(s);
-                            }
-                        });
+                        if (FileUtils.writeResponseBodyToDisk(MainActivity.this, responseBody, fileName)) {
+                            Log.i("", "");
+                        } else {
+                            Log.i("", "");
+                        }
                     }
                 }, new Consumer<Throwable>() {
                     @Override
@@ -327,72 +324,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }));
     }
-
-    /**
-     * 获取FileProvider的auth
-     */
-    private static String getFileProviderAuthority(Context context) {
-        try {
-            for (ProviderInfo provider : context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_PROVIDERS).providers) {
-                if (FileProvider.class.getName().equals(provider.name) && provider.authority.endsWith(".file_provider")) {
-                    return provider.authority;
-                }
-            }
-        } catch (PackageManager.NameNotFoundException ignore) {
-        }
-        return "";
-    }
-
-    private boolean writeResponseBodyToDisk(ResponseBody body) {
-        try {
-            // todo change the file location/name according to your needs
-            File futureStudioIconFile = new File(getCacheDir() + File.separator + "Future Studio Icon.png");
-
-            InputStream inputStream = null;
-            OutputStream outputStream = null;
-
-            try {
-                byte[] fileReader = new byte[4096];
-
-                long fileSize = body.contentLength();
-                long fileSizeDownloaded = 0;
-
-                inputStream = body.byteStream();
-                outputStream = new FileOutputStream(futureStudioIconFile);
-
-                while (true) {
-                    int read = inputStream.read(fileReader);
-
-                    if (read == -1) {
-                        break;
-                    }
-
-                    outputStream.write(fileReader, 0, read);
-
-                    fileSizeDownloaded += read;
-
-                    Log.d("", "file download: " + fileSizeDownloaded + " of " + fileSize);
-                }
-
-                outputStream.flush();
-
-                return true;
-            } catch (IOException e) {
-                return false;
-            } finally {
-                if (inputStream != null) {
-                    inputStream.close();
-                }
-
-                if (outputStream != null) {
-                    outputStream.close();
-                }
-            }
-        } catch (IOException e) {
-            return false;
-        }
-    }
-
 
     /**
      * 这里是已经选好的图片

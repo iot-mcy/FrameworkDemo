@@ -34,20 +34,33 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:onClick="setOnClickByUpload"
-            android:text="上传图片" />
+            android:text="上传附件" />
 
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:onClick="setOnClickByUploads"
-            android:text="上传多张图片" />
+            android:text="上传多个附件" />
 
         <Button
             android:id="@+id/bt_download"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:onClick="setOnClickByDownload"
-            android:text="下载图片" />
+            android:text="下载附件" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="setOnClickByLogin"
+            android:text="登录" />
+
+        <ProgressBar
+            android:id="@+id/progressBar"
+            style="?android:attr/progressBarStyleHorizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="100" />
 
         <TextView
             android:layout_width="wrap_content"
