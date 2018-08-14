@@ -27,47 +27,21 @@ public class FileUtils {
 
     public static File createFile(Context context, String fileName) {
 
-        File file = null;
+        File filePath;
         String state = android.os.Environment.getExternalStorageState();
         if (state.equals(Environment.MEDIA_MOUNTED)) {
-            file = new File(Environment.getExternalStorageDirectory() + File.separator + fileName);
+            filePath = new File(Environment.getExternalStorageDirectory() + File.separator + "mcy");
         } else {
-            file = new File(context.getCacheDir() + File.separator + fileName);
+            filePath = new File(context.getCacheDir() + File.separator + "mcy");
         }
 
-//        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-//            Uri contentUri = FileProvider.getUriForFile(context, getFileProviderAuthority(context), file);
-//            context.grantUriPermission(context.getPackageName(), contentUri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-//            ParcelFileDescriptor descriptor = null;
-//            try {
-//                descriptor = context.getContentResolver().openFileDescriptor(contentUri, "r");
-//            } catch (FileNotFoundException e) {
-//                e.printStackTrace();
-//            }
-//            FileDescriptor fileDescriptor = descriptor.getFileDescriptor();
-//        }
+        if (!filePath.exists()) {
+            filePath.mkdirs();
+        }
 
+        File file = new File(filePath, fileName);
         return file;
 
-    }
-
-    public static Uri getUriForFile(Context context, File file) {
-        Uri fileUri = null;
-        if (Build.VERSION.SDK_INT >= 24) {
-            fileUri = getUriForFile24(context, file);
-        } else {
-            fileUri = Uri.fromFile(file);
-        }
-        context.grantUriPermission(context.getPackageName(), fileUri, Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-        context.grantUriPermission(context.getPackageName(), fileUri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        return fileUri;
-    }
-
-    private static Uri getUriForFile24(Context context, File file) {
-        Uri fileUri = FileProvider.getUriForFile(context,
-                context.getPackageName() + ".file_provider",
-                file);
-        return fileUri;
     }
 
     /**
@@ -85,35 +59,15 @@ public class FileUtils {
         return "";
     }
 
-    private static File getDownloadDir(Context context, String name) {
-        File downloadDir = null;
-        if (android.os.Environment.getExternalStorageState().equals(android.os.Environment.MEDIA_MOUNTED)) {
-            if (name != null) {
-                downloadDir = new File(Environment.getExternalStorageDirectory(), "update");
-            } else {
-                downloadDir = new File(context.getExternalCacheDir(), "update");
-            }
-        } else {
-            downloadDir = new File(context.getCacheDir(), "update");
-        }
-        if (!downloadDir.exists()) {
-            downloadDir.mkdirs();
-        }
-        return downloadDir;
-    }
-
     /**
      * 将下载的附件写入磁盘
      *
-     * @param context
      * @param body
-     * @param filename
+     * @param file
      * @return
      */
-    public static boolean writeResponseBodyToDisk(Context context, ResponseBody body, String filename) {
+    public static boolean writeResponseBodyToDisk(ResponseBody body, File file) {
         try {
-            File file = createFile(context, filename);
-
             InputStream inputStream = null;
             OutputStream outputStream = null;
 
@@ -156,5 +110,24 @@ public class FileUtils {
         } catch (IOException e) {
             return false;
         }
+    }
+
+    /**
+     * 调用系统安装器安装apk
+     *
+     * @param context 上下文
+     * @param file    apk文件
+     */
+    public static void installApk(Context context, File file) {
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        Uri data;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            data = FileProvider.getUriForFile(context, getFileProviderAuthority(context), file);
+            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        } else {
+            data = Uri.fromFile(file);
+        }
+        intent.setDataAndType(data, "application/vnd.android.package-archive");
+        context.startActivity(intent);
     }
 }

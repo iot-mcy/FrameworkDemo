@@ -55,6 +55,12 @@
             android:onClick="setOnClickByLogin"
             android:text="登录" />
 
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="setOnClickByLog"
+            android:text="清除LOG" />
+
         <ProgressBar
             android:id="@+id/progressBar"
             style="?android:attr/progressBarStyleHorizontal"

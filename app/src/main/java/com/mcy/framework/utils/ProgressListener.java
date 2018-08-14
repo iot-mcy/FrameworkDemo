@@ -10,6 +10,8 @@ public interface ProgressListener {
      * @param progress 已经下载或上传字节数
      * @param total    总字节数
      * @param done     是否完成
+     * @param count    已上传附件的数量
+     * @param sum      总上传的附件数量
      */
-    void onProgress(long progress, long total, boolean done);
+    void onProgress(long progress, long total, boolean done, int count, int sum);
 }

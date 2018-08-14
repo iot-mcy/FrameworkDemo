@@ -34,9 +34,4 @@ public class DownloadProgress {
         this.totalLength = totalLength;
         this.isOk = isOk;
     }
-
-    public DownloadProgress(long currentLength, long totalLength) {
-        this.currentLength = currentLength;
-        this.totalLength = totalLength;
-    }
 }

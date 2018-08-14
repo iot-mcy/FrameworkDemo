@@ -25,6 +25,8 @@ import com.mcy.framework.text.GetTradeQuotedPriceByID;
 import com.mcy.framework.text.TestService;
 import com.mcy.framework.utils.DownloadProgress;
 import com.mcy.framework.utils.FileUtils;
+import com.mcy.framework.utils.ProgressListener;
+import com.mcy.framework.utils.UploadProgress;
 import com.tbruyelle.rxpermissions2.RxPermissions;
 
 import org.greenrobot.eventbus.EventBus;
@@ -43,7 +45,7 @@ import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 
-import static com.luck.picture.lib.config.PictureMimeType.ofVideo;
+import static com.luck.picture.lib.config.PictureMimeType.ofAll;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -169,6 +171,17 @@ public class MainActivity extends AppCompatActivity {
                 }));
     }
 
+    /**
+     * 清除log
+     *
+     * @param view
+     */
+    public void setOnClickByLog(View view) {
+        data.set("");
+        binding.progressBar.setProgress(0);
+        binding.btDownload.setText("下载附件");
+    }
+
     private void upload() {
         File file = new File("");
         MultipartBody.Builder builder = new MultipartBody.Builder().setType(MultipartBody.FORM);
@@ -185,11 +198,12 @@ public class MainActivity extends AppCompatActivity {
      */
     private void upLoad(String filePath) {
         File file = new File(filePath);
-
-        RequestBody requestFile = RequestBody.create(MediaType.parse("multipart/form-data"), file);
-        MultipartBody.Part part = MultipartBody.Part.createFormData("file", file.getName(), requestFile);
-
-        disposables.add(TestService.uploadMemberIcon(part)
+        disposables.add(TestService.uploadMemberAttachment(file, new ProgressListener() {
+            @Override
+            public void onProgress(long progress, long total, boolean done, int count, int sum) {
+                EventBus.getDefault().post(new UploadProgress(progress, total, done));
+            }
+        })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Consumer<String>() {
@@ -208,21 +222,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     /**
-     * 正式上传单张图片的地方
+     * 正式上传多个附件
      *
      * @param localMedia
      */
     private void upLoads(List<LocalMedia> localMedia) {
-
-        List<MultipartBody.Part> parts = new ArrayList<>();
-        for (LocalMedia filePath : localMedia) {
-            File file = new File(filePath.getPath());
-            RequestBody requestFile = RequestBody.create(MediaType.parse("multipart/form-data"), file);
-            MultipartBody.Part part = MultipartBody.Part.createFormData("file", file.getName(), requestFile);
-            parts.add(part);
-        }
-        String json = JSON.toJSONString(localMedia);
-        disposables.add(TestService.uploadAttachments(parts)
+        disposables.add(TestService.uploadAttachments(localMedia, new ProgressListener() {
+            @Override
+            public void onProgress(long progress, long total, boolean done, int count, int sum) {
+                EventBus.getDefault().post(new UploadProgress(progress, total, done, count, sum));
+            }
+        })
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Consumer<String>() {
@@ -280,7 +290,7 @@ public class MainActivity extends AppCompatActivity {
                     public void accept(Boolean aBoolean) throws Exception {
                         if (aBoolean) { // Always true pre-M
                             Log.i("", "");
-                            downloadFile("701483.apk");
+                            downloadFile("VID_20180501_224456.mp4");
                         } else {
                             // Oups permission denied
                             Log.i("", "");
@@ -298,24 +308,29 @@ public class MainActivity extends AppCompatActivity {
         binding.progressBar.setProgress(f);
     }
 
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void OnEventMsg(UploadProgress uploadProgress) {
+        int f = (int) ((uploadProgress.getCurrentLength() * 100) / uploadProgress.getTotalLength());
+        Log.d("uploadProgress", f + "%");
+        binding.btDownload.setText(f + "%" + " , " + uploadProgress.getCount() + "/" + uploadProgress.getSum());
+
+        binding.progressBar.setProgress(f);
+    }
+
     /**
      * 正式下载附件的地方
      *
      * @param fileName
      */
     private void downloadFile(final String fileName) {
-        disposables.add(TestService.downloadApk()
+        disposables.add(TestService.downloadAttaachments(fileName)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Consumer<ResponseBody>() {
                     @Override
                     public void accept(final ResponseBody responseBody) throws Exception {
                         Log.i("", "");
-                        if (FileUtils.writeResponseBodyToDisk(MainActivity.this, responseBody, fileName)) {
-                            Log.i("", "");
-                        } else {
-                            Log.i("", "");
-                        }
+                        saveFile(responseBody, fileName);
                     }
                 }, new Consumer<Throwable>() {
                     @Override
@@ -323,6 +338,24 @@ public class MainActivity extends AppCompatActivity {
                         Log.i("", "");
                     }
                 }));
+    }
+
+    /**
+     * 保存附件
+     *
+     * @param responseBody
+     * @param fileName
+     */
+    private void saveFile(ResponseBody responseBody, String fileName) {
+        File file = FileUtils.createFile(MainActivity.this, fileName);
+        if (FileUtils.writeResponseBodyToDisk(responseBody, file)) {
+            Log.i("", "");
+            data.set("成功");
+//                            FileUtils.installApk(MainActivity.this, file);
+        } else {
+            Log.i("", "");//可以尝试2次写入
+            data.set("失败");
+        }
     }
 
     /**
@@ -338,7 +371,7 @@ public class MainActivity extends AppCompatActivity {
     public void setOnClickByPhoto(View view) {
         // 进入相册 以下是例子：用不到的api可以不写
         PictureSelector.create(MainActivity.this)
-                .openGallery(ofVideo())//全部.PictureMimeType.ofAll()、图片.ofImage()、视频.ofVideo()、音频.ofAudio()
+                .openGallery(ofAll())//全部.PictureMimeType.ofAll()、图片.ofImage()、视频.ofVideo()、音频.ofAudio()
 //                .theme()//主题样式(不设置为默认样式) 也可参考demo values/styles下 例如：R.style.picture.white.style
                 .maxSelectNum(9)// 最大图片选择数量 int
                 .minSelectNum(1)// 最小选择数量 int

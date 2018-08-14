@@ -37,11 +37,11 @@ public interface TextServiceInterface {
      * 上传单张图片
      */
     @Multipart
-    @POST("/user.svc/upload")
-    Observable<String> uploadMemberIcon(@Part MultipartBody.Part part);
+    @POST("/user.svc/uploadAttachment")
+    Observable<String> uploadAttachment(@Part MultipartBody.Part part);
 
     @Multipart
-    @POST("/user.svc/uploadList")
+    @POST("/user.svc/uploadAttachments")
     Observable<String> uploadAttachments(@Part List<MultipartBody.Part> parts);
 
     @POST("/user.svc/download/{filename}")

@@ -1,7 +1,5 @@
 package com.mcy.framework.utils;
 
-import com.mcy.framework.utils.ProgressListener;
-
 import java.io.IOException;
 
 import okhttp3.MediaType;
@@ -12,6 +10,10 @@ import okio.ForwardingSource;
 import okio.Okio;
 import okio.Source;
 
+/**
+ * 作者 mcy
+ * 日期 2018/8/14 14:39
+ */
 public class ProgressResponseBody extends ResponseBody {
     private final ResponseBody responseBody;
     private final ProgressListener progressListener;
@@ -48,7 +50,7 @@ public class ProgressResponseBody extends ResponseBody {
             public long read(Buffer sink, long byteCount) throws IOException {
                 long bytesRead = super.read(sink, byteCount);
                 totalBytesRead += bytesRead != -1 ? bytesRead : 0;
-                progressListener.onProgress(totalBytesRead, responseBody.contentLength(), bytesRead == -1);
+                progressListener.onProgress(totalBytesRead, responseBody.contentLength(), bytesRead == -1, 0, 0);
                 return bytesRead;
             }
         };

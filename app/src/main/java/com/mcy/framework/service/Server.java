@@ -1,11 +1,8 @@
 package com.mcy.framework.service;
 
 import com.mcy.framework.BuildConfig;
-import com.mcy.framework.utils.DownloadProgress;
 import com.mcy.framework.utils.ProgressListener;
 import com.mcy.framework.utils.ProgressResponseBody;
-
-import org.greenrobot.eventbus.EventBus;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -21,6 +18,7 @@ import retrofit2.converter.fastjson.FastJsonConverterFactory;
 /**
  * 作者 mcy
  * 日期 2018/8/7 17:34
+ * 请求服务
  */
 public class Server {
 
@@ -47,7 +45,7 @@ public class Server {
         String baseUrl = "http://" + BuildConfig.IP + ":" + BuildConfig.PORT;
         String url = "http://download.taobaocdn.com";
         return new Retrofit.Builder()
-                .baseUrl(url)
+                .baseUrl(baseUrl)
                 .client(newClientBuilder().build())
                 .addConverterFactory(FastJsonConverterFactory.create())
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
@@ -55,7 +53,7 @@ public class Server {
     }
 
     private OkHttpClient.Builder newClientBuilder() {
-        long timeOut = 1000 * 60 * 60;
+        long timeOut = 1000 * 60 * 60;//目前设置1个小时，防止上下传附件过大是超时，可以考虑其它办法
         return new OkHttpClient.Builder()
                 .readTimeout(timeOut, TimeUnit.MILLISECONDS)
                 .connectTimeout(timeOut, TimeUnit.MILLISECONDS)
@@ -64,6 +62,9 @@ public class Server {
                 .addNetworkInterceptor(addNetworkInterceptor);
     }
 
+    /**
+     * 目的添加token
+     */
     private Interceptor interceptor = new Interceptor() {
         @Override
         public Response intercept(Chain chain) throws IOException {
@@ -89,8 +90,8 @@ public class Server {
     final ProgressListener progressListener = new ProgressListener() {
         //该方法在子线程中运行
         @Override
-        public void onProgress(long progress, long total, boolean done) {
-            EventBus.getDefault().post(new DownloadProgress(progress, total, done));
+        public void onProgress(long progress, long total, boolean done, int count, int sum) {
+//            EventBus.getDefault().post(new DownloadProgress(progress, total, done));
         }
     };
 

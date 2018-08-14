@@ -1,13 +1,21 @@
 package com.mcy.framework.text;
 
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import com.luck.picture.lib.entity.LocalMedia;
 import com.mcy.framework.service.Server;
+import com.mcy.framework.utils.ProgressListener;
+import com.mcy.framework.utils.ProgressRequestBody;
 
+import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 
 import io.reactivex.Flowable;
 import io.reactivex.Observable;
+import okhttp3.MediaType;
 import okhttp3.MultipartBody;
+import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 
 /**
@@ -53,11 +61,26 @@ public class TestService {
         return textService().getUserByUserID(name);
     }
 
-    public static Observable<String> uploadMemberIcon(MultipartBody.Part part) {
-        return textService().uploadMemberIcon(part);
+    public static Observable<String> uploadMemberAttachment(File file, ProgressListener progressListener) {
+        RequestBody requestFile = RequestBody.create(MediaType.parse("multipart/form-data"), file);
+        ProgressRequestBody progressRequestBody = new ProgressRequestBody(requestFile, progressListener);
+        MultipartBody.Part part = MultipartBody.Part.createFormData("file", file.getName(), progressRequestBody);
+        return textService().uploadAttachment(part);
     }
 
-    public static Observable<String> uploadAttachments(List<MultipartBody.Part> parts) {
+    public static Observable<String> uploadAttachments(List<LocalMedia> localMedia, ProgressListener progressListener) {
+        List<MultipartBody.Part> parts = new ArrayList<>();
+        int sum = localMedia.size();
+        int count = 0;
+        for (LocalMedia filePath : localMedia) {
+            count++;
+            File file = new File(filePath.getPath());
+            RequestBody requestFile = RequestBody.create(MediaType.parse("multipart/form-data"), file);
+            ProgressRequestBody progressRequestBody = new ProgressRequestBody(requestFile, progressListener, count, sum);
+            MultipartBody.Part part = MultipartBody.Part.createFormData("file", file.getName(), progressRequestBody);
+            parts.add(part);
+        }
+        String json = JSON.toJSONString(localMedia);
         return textService().uploadAttachments(parts);
     }
 
