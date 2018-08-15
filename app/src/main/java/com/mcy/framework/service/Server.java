@@ -1,8 +1,11 @@
 package com.mcy.framework.service;
 
 import com.mcy.framework.BuildConfig;
+import com.mcy.framework.utils.DownloadProgress;
 import com.mcy.framework.utils.ProgressListener;
 import com.mcy.framework.utils.ProgressResponseBody;
+
+import org.greenrobot.eventbus.EventBus;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -43,9 +46,9 @@ public class Server {
 
     private Retrofit newRetrofit() {
         String baseUrl = "http://" + BuildConfig.IP + ":" + BuildConfig.PORT;
-        String url = "http://download.taobaocdn.com";
+        String url = "http://acj3.pc6.com";
         return new Retrofit.Builder()
-                .baseUrl(baseUrl)
+                .baseUrl(url)
                 .client(newClientBuilder().build())
                 .addConverterFactory(FastJsonConverterFactory.create())
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
@@ -91,7 +94,7 @@ public class Server {
         //该方法在子线程中运行
         @Override
         public void onProgress(long progress, long total, boolean done, int count, int sum) {
-//            EventBus.getDefault().post(new DownloadProgress(progress, total, done));
+            EventBus.getDefault().post(new DownloadProgress(progress, total, done));
         }
     };
 

@@ -16,7 +16,7 @@ android {
     buildTypes {
 
         debug {
-            buildConfigField("String", "IP", "\"192.168.2.26\"")
+            buildConfigField("String", "IP", "\"192.168.43.35\"")
             buildConfigField("int", "PORT", "8080")
             applicationIdSuffix = ".debug"
             minifyEnabled false

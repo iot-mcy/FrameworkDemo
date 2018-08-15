@@ -8,6 +8,7 @@ import io.reactivex.Flowable;
 import io.reactivex.Observable;
 import okhttp3.MultipartBody;
 import okhttp3.ResponseBody;
+import retrofit2.Call;
 import retrofit2.http.Body;
 import retrofit2.http.GET;
 import retrofit2.http.Multipart;
@@ -47,6 +48,6 @@ public interface TextServiceInterface {
     @POST("/user.svc/download/{filename}")
     Observable<ResponseBody> download(@Path("filename") String filename);
 
-    @GET("/wireless/taobao4android/latest/701483.apk")
-    Observable<ResponseBody> downloadApk();
+    @GET("/pc6_soure/2018-5/com.frego.flashlight_1286.apk")
+    Call<ResponseBody> downloadApk();//
 }

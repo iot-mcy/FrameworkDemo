@@ -19,6 +19,7 @@ import com.luck.picture.lib.PictureSelector;
 import com.luck.picture.lib.config.PictureConfig;
 import com.luck.picture.lib.config.PictureMimeType;
 import com.luck.picture.lib.entity.LocalMedia;
+import com.mcy.framework.AppUpdate.AppDownloadManager;
 import com.mcy.framework.databinding.ActivityMainBinding;
 import com.mcy.framework.rxjava.Disposables;
 import com.mcy.framework.text.GetTradeQuotedPriceByID;
@@ -290,7 +291,7 @@ public class MainActivity extends AppCompatActivity {
                     public void accept(Boolean aBoolean) throws Exception {
                         if (aBoolean) { // Always true pre-M
                             Log.i("", "");
-                            downloadFile("VID_20180501_224456.mp4");
+                            downloadApk("a.apk");
                         } else {
                             // Oups permission denied
                             Log.i("", "");
@@ -304,7 +305,6 @@ public class MainActivity extends AppCompatActivity {
         int f = (int) ((downloadProgress.getCurrentLength() * 100) / downloadProgress.getTotalLength());
         Log.d("DownloadProgress", f + "%");
         binding.btDownload.setText(f + "%");
-
         binding.progressBar.setProgress(f);
     }
 
@@ -312,9 +312,8 @@ public class MainActivity extends AppCompatActivity {
     public void OnEventMsg(UploadProgress uploadProgress) {
         int f = (int) ((uploadProgress.getCurrentLength() * 100) / uploadProgress.getTotalLength());
         Log.d("uploadProgress", f + "%");
-        binding.btDownload.setText(f + "%" + " , " + uploadProgress.getCount() + "/" + uploadProgress.getSum());
-
-        binding.progressBar.setProgress(f);
+//        binding.btDownload.setText(f + "%" + " , " + uploadProgress.getCount() + "/" + uploadProgress.getSum());
+//        binding.progressBar.setProgress(f);
     }
 
     /**
@@ -340,6 +339,12 @@ public class MainActivity extends AppCompatActivity {
                 }));
     }
 
+    private void downloadApk(final String fileName) {
+        AppDownloadManager.getInstance(this).setFileName(fileName).downloadApk();
+    }
+
+    private File file;
+
     /**
      * 保存附件
      *
@@ -347,11 +352,11 @@ public class MainActivity extends AppCompatActivity {
      * @param fileName
      */
     private void saveFile(ResponseBody responseBody, String fileName) {
-        File file = FileUtils.createFile(MainActivity.this, fileName);
+        file = FileUtils.createFile(MainActivity.this, fileName);
         if (FileUtils.writeResponseBodyToDisk(responseBody, file)) {
             Log.i("", "");
             data.set("成功");
-//                            FileUtils.installApk(MainActivity.this, file);
+
         } else {
             Log.i("", "");//可以尝试2次写入
             data.set("失败");
@@ -416,22 +421,20 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (resultCode == RESULT_OK) {
-            switch (requestCode) {
-                case PictureConfig.CHOOSE_REQUEST:
-                    // 图片、视频、音频选择结果回调
-                    List<LocalMedia> selectList = PictureSelector.obtainMultipleResult(data);
-                    localMedia = selectList;
-                    Glide.with(this).load(localMedia.get(0).getPath()).into(binding.imageView);
-                    // 例如 LocalMedia 里面返回三种path
-                    // 1.media.getPath(); 为原图path
-                    // 2.media.getCutPath();为裁剪后path，需判断media.isCut();是否为true  注意：音视频除外
-                    // 3.media.getCompressPath();为压缩后path，需判断media.isCompressed();是否为true  注意：音视频除外
-                    // 如果裁剪并压缩了，以取压缩路径为准，因为是先裁剪后压缩的
+        switch (requestCode) {
+            case PictureConfig.CHOOSE_REQUEST:
+                // 图片、视频、音频选择结果回调
+                List<LocalMedia> selectList = PictureSelector.obtainMultipleResult(data);
+                localMedia = selectList;
+                Glide.with(this).load(localMedia.get(0).getPath()).into(binding.imageView);
+                // 例如 LocalMedia 里面返回三种path
+                // 1.media.getPath(); 为原图path
+                // 2.media.getCutPath();为裁剪后path，需判断media.isCut();是否为true  注意：音视频除外
+                // 3.media.getCompressPath();为压缩后path，需判断media.isCompressed();是否为true  注意：音视频除外
+                // 如果裁剪并压缩了，以取压缩路径为准，因为是先裁剪后压缩的
 //                    adapter.setList(selectList);
 //                    adapter.notifyDataSetChanged();
-                    break;
-            }
+                break;
         }
     }
 

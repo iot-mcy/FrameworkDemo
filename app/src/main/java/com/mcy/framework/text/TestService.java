@@ -17,6 +17,7 @@ import okhttp3.MediaType;
 import okhttp3.MultipartBody;
 import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
+import retrofit2.Call;
 
 /**
  * 作者 mcy
@@ -88,7 +89,7 @@ public class TestService {
         return textService().download(fileName);
     }
 
-    public static Observable<ResponseBody> downloadApk() {
+    public static Call<ResponseBody> downloadApk() {
         return textService().downloadApk();
     }
 }

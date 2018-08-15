@@ -47,7 +47,7 @@ public class FileUtils {
     /**
      * 获取FileProvider的auth
      */
-    private static String getFileProviderAuthority(Context context) {
+    public static String getFileProviderAuthority(Context context) {
         try {
             for (ProviderInfo provider : context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_PROVIDERS).providers) {
                 if (FileProvider.class.getName().equals(provider.name) && provider.authority.endsWith(".file_provider")) {
@@ -112,22 +112,5 @@ public class FileUtils {
         }
     }
 
-    /**
-     * 调用系统安装器安装apk
-     *
-     * @param context 上下文
-     * @param file    apk文件
-     */
-    public static void installApk(Context context, File file) {
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        Uri data;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            data = FileProvider.getUriForFile(context, getFileProviderAuthority(context), file);
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        } else {
-            data = Uri.fromFile(file);
-        }
-        intent.setDataAndType(data, "application/vnd.android.package-archive");
-        context.startActivity(intent);
-    }
+
 }
