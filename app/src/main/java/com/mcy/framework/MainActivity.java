@@ -1,6 +1,5 @@
 package com.mcy.framework;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Intent;
@@ -20,6 +19,9 @@ import com.luck.picture.lib.config.PictureConfig;
 import com.luck.picture.lib.config.PictureMimeType;
 import com.luck.picture.lib.entity.LocalMedia;
 import com.mcy.framework.AppUpdate.AppDownloadManager;
+import com.mcy.framework.AttachmentDownload.AttachmentDownloadManager;
+import com.mcy.framework.AttachmentUpload.AttachmentUploadManager;
+import com.mcy.framework.AttachmentUpload.UploadListener;
 import com.mcy.framework.databinding.ActivityMainBinding;
 import com.mcy.framework.rxjava.Disposables;
 import com.mcy.framework.text.GetTradeQuotedPriceByID;
@@ -27,6 +29,7 @@ import com.mcy.framework.text.TestService;
 import com.mcy.framework.utils.DownloadProgress;
 import com.mcy.framework.utils.FileUtils;
 import com.mcy.framework.utils.ProgressListener;
+import com.mcy.framework.utils.ToastManager;
 import com.mcy.framework.utils.UploadProgress;
 import com.tbruyelle.rxpermissions2.RxPermissions;
 
@@ -228,27 +231,44 @@ public class MainActivity extends AppCompatActivity {
      * @param localMedia
      */
     private void upLoads(List<LocalMedia> localMedia) {
-        disposables.add(TestService.uploadAttachments(localMedia, new ProgressListener() {
-            @Override
-            public void onProgress(long progress, long total, boolean done, int count, int sum) {
-                EventBus.getDefault().post(new UploadProgress(progress, total, done, count, sum));
-            }
-        })
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Consumer<String>() {
+//        disposables.add(TestService.uploadAttachments(localMedia, new ProgressListener() {
+//            @Override
+//            public void onProgress(long progress, long total, boolean done, int count, int sum) {
+//                EventBus.getDefault().post(new UploadProgress(progress, total, done, count, sum));
+//            }
+//        })
+//                .subscribeOn(Schedulers.io())
+//                .observeOn(AndroidSchedulers.mainThread())
+//                .subscribe(new Consumer<String>() {
+//                    @Override
+//                    public void accept(String s) throws Exception {
+//                        Log.i("", "");
+//                        data.set(s);
+//                    }
+//                }, new Consumer<Throwable>() {
+//                    @Override
+//                    public void accept(Throwable throwable) throws Exception {
+//                        Log.i("", "");
+//                        data.set(throwable.getMessage());
+//                    }
+//                }));
+        List<String> paths = new ArrayList<>();
+        for (LocalMedia media : localMedia) {
+            paths.add(media.getPath());
+        }
+        AttachmentUploadManager
+                .getInstance(this)
+                .uploadAttachments(paths, new UploadListener() {
                     @Override
-                    public void accept(String s) throws Exception {
-                        Log.i("", "");
-                        data.set(s);
+                    public void done(String data) {
+                        ToastManager.showToastShort(MainActivity.this, data);
                     }
-                }, new Consumer<Throwable>() {
+
                     @Override
-                    public void accept(Throwable throwable) throws Exception {
-                        Log.i("", "");
-                        data.set(throwable.getMessage());
+                    public void error(Throwable throwable) {
+                        ToastManager.showToastShort(MainActivity.this, throwable.getMessage());
                     }
-                }));
+                });
     }
 
     /**
@@ -282,22 +302,8 @@ public class MainActivity extends AppCompatActivity {
     @SuppressLint("CheckResult")
     @TargetApi(Build.VERSION_CODES.M)
     public void setOnClickByDownload(View view) {
-        rxPermissions
-                .request(Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                        Manifest.permission.READ_EXTERNAL_STORAGE)
-                .subscribe(new Consumer<Boolean>() {
-
-                    @Override
-                    public void accept(Boolean aBoolean) throws Exception {
-                        if (aBoolean) { // Always true pre-M
-                            Log.i("", "");
-                            downloadApk("a.apk");
-                        } else {
-                            // Oups permission denied
-                            Log.i("", "");
-                        }
-                    }
-                });
+//        downloadApk("a.apk");
+        downloadAttachment("图1.jpg");
     }
 
     @Subscribe(threadMode = ThreadMode.MAIN)
@@ -339,9 +345,14 @@ public class MainActivity extends AppCompatActivity {
                 }));
     }
 
-    private void downloadApk(final String fileName) {
+    private void downloadApk(String fileName) {
         String path = "/pc6_soure/2018-5/com.frego.flashlight_1286.apk";
         AppDownloadManager.getInstance(this).setFileName(fileName).downloadApk(path);
+    }
+
+    private void downloadAttachment(String fileName) {
+        String path = "IMG_20180728_103505.jpg";
+        AttachmentDownloadManager.getInstance(this).setFileName(fileName).downloadAttachment(path);
     }
 
     private File file;

@@ -1,10 +1,9 @@
-package com.mcy.framework.AppUpdate;
+package com.mcy.framework.AttachmentDownload;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.DialogInterface;
-import android.content.Intent;
 import android.support.v4.app.FragmentActivity;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
@@ -31,17 +30,14 @@ import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
 
-import static com.mcy.framework.AppUpdate.InstallApk.checkOreoInstallPermission;
-import static com.mcy.framework.AppUpdate.InstallApk.installApk;
-
 /**
  * 作者 mcy
  * 日期 2018/8/15 18:05
- * apk下载工具类
+ * 附件下载工具类
  */
-public class AppDownloadManager {
+public class AttachmentDownloadManager {
 
-    private static String TAG = AppDownloadManager.class.getSimpleName();
+    private static String TAG = AttachmentDownloadManager.class.getSimpleName();
 
     /**
      * 上下文
@@ -51,7 +47,12 @@ public class AppDownloadManager {
     /**
      *
      */
-    private static AppDownloadManager manager;
+    private RxPermissions rxPermissions;
+
+    /**
+     *
+     */
+    private static AttachmentDownloadManager manager;
 
     /**
      * 加载进度框的对话框
@@ -61,17 +62,17 @@ public class AppDownloadManager {
     /**
      * 没有设置的就默认给个名字
      */
-    private String fileName = "update.apk";
+    private String fileName = "";
 
     /**
      * @param context
      * @return
      */
-    public static AppDownloadManager getInstance(Context context) {
+    public static AttachmentDownloadManager getInstance(Context context) {
         if (manager == null) {
-            synchronized (AppDownloadManager.class) {
+            synchronized (AttachmentDownloadManager.class) {
                 if (manager == null) {
-                    manager = new AppDownloadManager(context);
+                    manager = new AttachmentDownloadManager(context);
                 }
             }
         }
@@ -81,76 +82,30 @@ public class AppDownloadManager {
     /**
      * @param context
      */
-    public AppDownloadManager(Context context) {
+    public AttachmentDownloadManager(Context context) {
         this.context = context;
+        rxPermissions = new RxPermissions((FragmentActivity) context);
         EventBus.getDefault().register(this);
     }
 
     /**
-     * 另保APP的名字
+     * 文件名称加后缀名
      *
      * @param fileName
      * @return
      */
-    public AppDownloadManager setFileName(String fileName) {
-        // TODO: 2018/8/15 这里已经该是APP的地址
+    public AttachmentDownloadManager setFileName(String fileName) {
         this.fileName = fileName;
         return this;
     }
 
     /**
-     * 这个先暂时保留
-     */
-    @SuppressLint("CheckResult")
-    public void download() {
-
-        final RxPermissions rxPermissions = new RxPermissions((FragmentActivity) context);
-        rxPermissions.request(Manifest.permission.WRITE_EXTERNAL_STORAGE, Manifest.permission.READ_EXTERNAL_STORAGE)
-                .subscribe(new Consumer<Boolean>() {
-                    @Override
-                    public void accept(Boolean aBoolean) throws Exception {
-                        if (aBoolean) {
-                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                                boolean canInstall = checkOreoInstallPermission(context);
-                                if (!canInstall) {
-                                    rxPermissions.request(Manifest.permission.REQUEST_INSTALL_PACKAGES)
-                                            .subscribe(new Consumer<Boolean>() {
-                                                @Override
-                                                public void accept(Boolean aBoolean) throws Exception {
-                                                    if (aBoolean) {
-                                                        // TODO: 2018/8/15 下载
-                                                        downloadApk("");
-                                                    } else {
-                                                        // TODO: 2018/8/15 需要调到“安装位置应用的界面”
-                                                        context.startActivity(new Intent(context, ActionManageUnknownAPPSourcesActivity.class)
-                                                                .putExtra("", fileName));
-                                                    }
-                                                }
-                                            });
-                                } else {
-                                    // TODO: 2018/8/15 下载
-                                    downloadApk("");
-                                }
-                            } else {
-                                // TODO: 2018/8/15 下载
-                                downloadApk("");
-                            }
-
-                        } else {
-                            Log.i(TAG, "拒绝权限");
-                        }
-                    }
-                });
-    }
-
-    /**
-     * 正式下载APK
+     * 正式下载
      *
-     * @param path 下载apk的路径
+     * @param path 下载附件的路径
      */
     @SuppressLint("CheckResult")
-    public void downloadApk(final String path) {
-        final RxPermissions rxPermissions = new RxPermissions((FragmentActivity) context);
+    public void downloadAttachment(final String path) {
         rxPermissions.request(Manifest.permission.WRITE_EXTERNAL_STORAGE,
                 Manifest.permission.READ_EXTERNAL_STORAGE)
                 .subscribe(new Consumer<Boolean>() {
@@ -158,19 +113,19 @@ public class AppDownloadManager {
                     public void accept(Boolean aBoolean) throws Exception {
                         if (aBoolean) {
                             initProgressDialog();
-                            AppService.downloadApk(path, new ProgressListener() {
+                            AttachmentDownloadService.downloadAttachment(path, new ProgressListener() {
                                 @Override
                                 public void onProgress(long progress, long total, boolean done, int count, int sum) {
 
                                     if (dialog.isShowing()) {
-                                        EventBus.getDefault().post(new AppDownloadEntity(progress, total, done));
+                                        EventBus.getDefault().post(new AttachmentDownloadEntity(progress, total, count, sum, done));
                                     }
                                 }
                             })
                                     .enqueue(new Callback<ResponseBody>() {
                                         @Override
                                         public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                                            saveApk(response.body());
+                                            saveAttachment(response.body());
                                         }
 
                                         @Override
@@ -196,7 +151,7 @@ public class AppDownloadManager {
         dialog = new AlertDialog.Builder(context)
                 .setTitle("正在下载")
                 .setIcon(R.drawable.ic_download)
-                .setPositiveButton("后台更新", new DialogInterface.OnClickListener() {
+                .setPositiveButton("后台下载", new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialogInterface, int i) {
                         dialogInterface.dismiss();
@@ -219,21 +174,22 @@ public class AppDownloadManager {
 
     @SuppressLint("SetTextI18n")
     @Subscribe(threadMode = ThreadMode.MAIN)
-    public void OnEventMsg(AppDownloadEntity entity) {
+    public void OnEventMsg(AttachmentDownloadEntity entity) {
         int progress = (int) ((entity.getProgress() * 100) / entity.getTotal());
         tvValue.setText(progress + " %");
         progressBar.setProgress(progress);
+
         if (entity.isDone()) {
             dialog.dismiss();
         }
     }
 
     /**
-     * 保存apk
+     * 保存附件到磁盘
      *
      * @param responseBody
      */
-    private void saveApk(ResponseBody responseBody) {
+    private void saveAttachment(ResponseBody responseBody) {
         if (responseBody == null) {
             dialog.dismiss();
             ToastManager.showToastShort(context, "下载失败");
@@ -242,24 +198,28 @@ public class AppDownloadManager {
         File file = FileUtils.createFile(context, fileName);
         if (FileUtils.writeResponseBodyToDisk(responseBody, file)) {
             Log.i(TAG, "文件写入成功");
-            installApk(context, file);
+            ToastManager.showToastShort(context, file.getPath() + "\n保存成功");
         } else {
             Log.i(TAG, "文件写入失败");
-            ToastManager.showToastShort(context, "安装失败");
+            ToastManager.showToastShort(context, "保存失败");
         }
     }
 
     /**
      * 用于通知更新进度条和进度百分比的实体类
      */
-    class AppDownloadEntity {
+    class AttachmentDownloadEntity {
         private long progress;
         private long total;
+        private int count;
+        private int sum;
         private boolean done;
 
-        public AppDownloadEntity(long progress, long total, boolean done) {
+        public AttachmentDownloadEntity(long progress, long total, int count, int sum, boolean done) {
             this.progress = progress;
             this.total = total;
+            this.count = count;
+            this.sum = sum;
             this.done = done;
         }
 
@@ -269,6 +229,14 @@ public class AppDownloadManager {
 
         long getTotal() {
             return total;
+        }
+
+        public int getCount() {
+            return count;
+        }
+
+        public int getSum() {
+            return sum;
         }
 
         public boolean isDone() {

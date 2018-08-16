@@ -17,15 +17,15 @@ import retrofit2.converter.fastjson.FastJsonConverterFactory;
 
 /**
  * 作者 mcy
- * 日期 2018/8/7 17:34
- * 请求服务
+ * 日期 2018/8/16 16:46
+ * 专业下载请求服务
  */
-public class Server {
+public class DownloadServer {
 
     /**
      *
      */
-    private volatile static Server sInstance;
+    private volatile static DownloadServer sInstance;
 
     /**
      *
@@ -36,11 +36,11 @@ public class Server {
      * @param progressListener
      * @return
      */
-    private static Server getInstance(ProgressListener progressListener) {
+    private static DownloadServer getInstance(ProgressListener progressListener) {
         if (sInstance == null) {
-            synchronized (Server.class) {
+            synchronized (DownloadServer.class) {
                 if (sInstance == null) {
-                    sInstance = new Server(progressListener);
+                    sInstance = new DownloadServer(progressListener);
                 }
             }
         }
@@ -50,7 +50,7 @@ public class Server {
     /**
      * @param progressListener
      */
-    private Server(ProgressListener progressListener) {
+    private DownloadServer(ProgressListener progressListener) {
         retrofit = newRetrofit(progressListener);
     }
 
@@ -85,7 +85,7 @@ public class Server {
             builder.addNetworkInterceptor(new Interceptor() {
                 @Override
                 public Response intercept(Chain chain) throws IOException {
-                    okhttp3.Response originalResponse = chain.proceed(chain.request());
+                    Response originalResponse = chain.proceed(chain.request());
                     return originalResponse.newBuilder()
                             .body(new ProgressResponseBody(originalResponse.body(), progressListener))
                             .build();
@@ -112,15 +112,6 @@ public class Server {
      */
     private Retrofit getRetrofit() {
         return retrofit;
-    }
-
-    /**
-     * @param tClass
-     * @param <T>
-     * @return
-     */
-    public static <T> T getService(Class<T> tClass) {
-        return getInstance(null).getRetrofit().create(tClass);
     }
 
     /**
