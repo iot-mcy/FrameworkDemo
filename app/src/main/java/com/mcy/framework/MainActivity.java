@@ -340,7 +340,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void downloadApk(final String fileName) {
-        AppDownloadManager.getInstance(this).setFileName(fileName).downloadApk();
+        String path = "/pc6_soure/2018-5/com.frego.flashlight_1286.apk";
+        AppDownloadManager.getInstance(this).setFileName(fileName).downloadApk(path);
     }
 
     private File file;

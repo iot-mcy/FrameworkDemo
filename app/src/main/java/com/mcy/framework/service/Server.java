@@ -1,11 +1,8 @@
 package com.mcy.framework.service;
 
 import com.mcy.framework.BuildConfig;
-import com.mcy.framework.utils.DownloadProgress;
 import com.mcy.framework.utils.ProgressListener;
 import com.mcy.framework.utils.ProgressResponseBody;
-
-import org.greenrobot.eventbus.EventBus;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -25,44 +22,77 @@ import retrofit2.converter.fastjson.FastJsonConverterFactory;
  */
 public class Server {
 
+    /**
+     *
+     */
     private volatile static Server sInstance;
 
+    /**
+     *
+     */
     private transient Retrofit retrofit;
 
-    private static Server getInstance() {
+    /**
+     * @param progressListener
+     * @return
+     */
+    private static Server getInstance(ProgressListener progressListener) {
         if (sInstance == null) {
             synchronized (Server.class) {
                 if (sInstance == null) {
-                    sInstance = new Server();
+                    sInstance = new Server(progressListener);
                 }
             }
         }
         return sInstance;
     }
 
-    private Server() {
-        retrofit = newRetrofit();
+    /**
+     * @param progressListener
+     */
+    private Server(ProgressListener progressListener) {
+        retrofit = newRetrofit(progressListener);
     }
 
-    private Retrofit newRetrofit() {
+    /**
+     * @param progressListener
+     * @return
+     */
+    private Retrofit newRetrofit(ProgressListener progressListener) {
         String baseUrl = "http://" + BuildConfig.IP + ":" + BuildConfig.PORT;
         String url = "http://acj3.pc6.com";
         return new Retrofit.Builder()
                 .baseUrl(url)
-                .client(newClientBuilder().build())
+                .client(newClientBuilder(progressListener).build())
                 .addConverterFactory(FastJsonConverterFactory.create())
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .build();
     }
 
-    private OkHttpClient.Builder newClientBuilder() {
+    /**
+     * @param progressListener
+     * @return
+     */
+    private OkHttpClient.Builder newClientBuilder(final ProgressListener progressListener) {
         long timeOut = 1000 * 60 * 60;//目前设置1个小时，防止上下传附件过大是超时，可以考虑其它办法
-        return new OkHttpClient.Builder()
+        OkHttpClient.Builder builder = new OkHttpClient.Builder()
                 .readTimeout(timeOut, TimeUnit.MILLISECONDS)
                 .connectTimeout(timeOut, TimeUnit.MILLISECONDS)
                 .writeTimeout(timeOut, TimeUnit.MILLISECONDS)
-                .addInterceptor(interceptor)
-                .addNetworkInterceptor(addNetworkInterceptor);
+                .addInterceptor(interceptor);
+
+        if (progressListener != null) {//用于下载监听进度
+            builder.addNetworkInterceptor(new Interceptor() {
+                @Override
+                public Response intercept(Chain chain) throws IOException {
+                    okhttp3.Response originalResponse = chain.proceed(chain.request());
+                    return originalResponse.newBuilder()
+                            .body(new ProgressResponseBody(originalResponse.body(), progressListener))
+                            .build();
+                }
+            });
+        }
+        return builder;
     }
 
     /**
@@ -78,32 +108,28 @@ public class Server {
     };
 
     /**
-     * 用于下载监听进度
+     * @return
      */
-    private Interceptor addNetworkInterceptor = new Interceptor() {
-        @Override
-        public Response intercept(Chain chain) throws IOException {
-            okhttp3.Response originalResponse = chain.proceed(chain.request());
-            return originalResponse.newBuilder()
-                    .body(new ProgressResponseBody(originalResponse.body(), progressListener))
-                    .build();
-        }
-    };
-
-    final ProgressListener progressListener = new ProgressListener() {
-        //该方法在子线程中运行
-        @Override
-        public void onProgress(long progress, long total, boolean done, int count, int sum) {
-            EventBus.getDefault().post(new DownloadProgress(progress, total, done));
-        }
-    };
-
-
     private Retrofit getRetrofit() {
         return retrofit;
     }
 
+    /**
+     * @param tClass
+     * @param <T>
+     * @return
+     */
     public static <T> T getService(Class<T> tClass) {
-        return getInstance().getRetrofit().create(tClass);
+        return getInstance(null).getRetrofit().create(tClass);
+    }
+
+    /**
+     * @param tClass
+     * @param progressListener 用于下载监听进度
+     * @param <T>
+     * @return
+     */
+    public static <T> T getService(Class<T> tClass, ProgressListener progressListener) {
+        return getInstance(progressListener).getRetrofit().create(tClass);
     }
 }

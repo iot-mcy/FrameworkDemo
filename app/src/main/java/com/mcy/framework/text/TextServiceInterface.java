@@ -48,6 +48,6 @@ public interface TextServiceInterface {
     @POST("/user.svc/download/{filename}")
     Observable<ResponseBody> download(@Path("filename") String filename);
 
-    @GET("/pc6_soure/2018-5/com.frego.flashlight_1286.apk")
-    Call<ResponseBody> downloadApk();//
+    @GET("{path}")
+    Call<ResponseBody> downloadApk(@Path("path") String path);
 }

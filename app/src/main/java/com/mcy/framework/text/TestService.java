@@ -89,7 +89,7 @@ public class TestService {
         return textService().download(fileName);
     }
 
-    public static Call<ResponseBody> downloadApk() {
-        return textService().downloadApk();
+    public static Call<ResponseBody> downloadApk(String path) {
+        return textService().downloadApk(path);
     }
 }
