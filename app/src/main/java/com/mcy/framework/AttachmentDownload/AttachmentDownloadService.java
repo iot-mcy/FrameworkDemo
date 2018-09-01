@@ -1,5 +1,6 @@
 package com.mcy.framework.AttachmentDownload;
 
+import com.mcy.framework.service.DownloadServer;
 import com.mcy.framework.service.Server;
 import com.mcy.framework.utils.ProgressListener;
 
@@ -19,7 +20,7 @@ public class AttachmentDownloadService {
      */
     private static AttachmentDownloadServiceInterface serviceInterface(ProgressListener progressListener) {
         synchronized (AttachmentDownloadServiceInterface.class) {
-            return Server.getService(AttachmentDownloadServiceInterface.class, progressListener);
+            return DownloadServer.getService(AttachmentDownloadServiceInterface.class, progressListener);
         }
     }
 

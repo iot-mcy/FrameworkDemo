@@ -150,38 +150,26 @@ public class AppDownloadManager {
      */
     @SuppressLint("CheckResult")
     public void downloadApk(final String path) {
-        final RxPermissions rxPermissions = new RxPermissions((FragmentActivity) context);
-        rxPermissions.request(Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_EXTERNAL_STORAGE)
-                .subscribe(new Consumer<Boolean>() {
+        initProgressDialog();
+        AppService.downloadApk(path, new ProgressListener() {
+            @Override
+            public void onProgress(long progress, long total, boolean done, int count, int sum) {
+
+                if (dialog.isShowing()) {
+                    EventBus.getDefault().post(new AppDownloadEntity(progress, total, done));
+                }
+            }
+        })
+                .enqueue(new Callback<ResponseBody>() {
                     @Override
-                    public void accept(Boolean aBoolean) throws Exception {
-                        if (aBoolean) {
-                            initProgressDialog();
-                            AppService.downloadApk(path, new ProgressListener() {
-                                @Override
-                                public void onProgress(long progress, long total, boolean done, int count, int sum) {
+                    public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                        saveApk(response.body());
+                    }
 
-                                    if (dialog.isShowing()) {
-                                        EventBus.getDefault().post(new AppDownloadEntity(progress, total, done));
-                                    }
-                                }
-                            })
-                                    .enqueue(new Callback<ResponseBody>() {
-                                        @Override
-                                        public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                                            saveApk(response.body());
-                                        }
-
-                                        @Override
-                                        public void onFailure(Call<ResponseBody> call, Throwable t) {
-                                            Log.i(TAG, "下载出错");
-                                            ToastManager.showToastShort(context, "下载出错");
-                                        }
-                                    });
-                        } else {
-                            Log.i(TAG, "权限被拒绝");
-                        }
+                    @Override
+                    public void onFailure(Call<ResponseBody> call, Throwable t) {
+                        Log.i(TAG, "下载出错");
+                        ToastManager.showToastShort(context, "下载出错");
                     }
                 });
     }

@@ -1,5 +1,6 @@
 package com.mcy.framework;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Intent;
@@ -25,10 +26,11 @@ import com.mcy.framework.AttachmentUpload.UploadListener;
 import com.mcy.framework.databinding.ActivityMainBinding;
 import com.mcy.framework.rxjava.Disposables;
 import com.mcy.framework.text.GetTradeQuotedPriceByID;
+import com.mcy.framework.baseEntity.ResponseEntity;
 import com.mcy.framework.text.TestService;
+import com.mcy.framework.user.User;
 import com.mcy.framework.utils.DownloadProgress;
 import com.mcy.framework.utils.FileUtils;
-import com.mcy.framework.utils.ProgressListener;
 import com.mcy.framework.utils.ToastManager;
 import com.mcy.framework.utils.UploadProgress;
 import com.tbruyelle.rxpermissions2.RxPermissions;
@@ -44,9 +46,6 @@ import java.util.List;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.functions.Consumer;
 import io.reactivex.schedulers.Schedulers;
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.RequestBody;
 import okhttp3.ResponseBody;
 
 import static com.luck.picture.lib.config.PictureMimeType.ofAll;
@@ -84,6 +83,7 @@ public class MainActivity extends AppCompatActivity {
         super.onDestroy();
         disposables.disposeAll();
         EventBus.getDefault().unregister(this);
+        AttachmentDownloadManager.getInstance(this).clear();
     }
 
     private void getData1() {
@@ -160,6 +160,32 @@ public class MainActivity extends AppCompatActivity {
         disposables.add(TestService.login("mcy", "123456")
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<ResponseEntity<User>>() {
+                    @Override
+                    public void accept(ResponseEntity<User> userResponseEntity) throws Exception {
+                        Log.i("", "");
+                        data.set(JSON.toJSONString(userResponseEntity));
+                        User.updateCurrentUser(userResponseEntity.getData());
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) throws Exception {
+                        Log.i("", "");
+                        data.set(throwable.getMessage());
+                    }
+                }));
+    }
+
+
+    /**
+     * 登录
+     *
+     * @param view
+     */
+    public void setOnClickByLogout(View view) {
+        disposables.add(TestService.logout()
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Consumer<String>() {
                     @Override
                     public void accept(String s) throws Exception {
@@ -186,43 +212,13 @@ public class MainActivity extends AppCompatActivity {
         binding.btDownload.setText("下载附件");
     }
 
-    private void upload() {
-        File file = new File("");
-        MultipartBody.Builder builder = new MultipartBody.Builder().setType(MultipartBody.FORM);
-        RequestBody requestBody = RequestBody.create(MediaType.parse("multipart/form-data"), file);
-        builder.addFormDataPart("imgfile", file.getName(), requestBody);
-        List<MultipartBody.Part> parts = builder.build().parts();
-
-    }
-
     /**
      * 正式上传单张图片的地方
      *
      * @param filePath
      */
     private void upLoad(String filePath) {
-        File file = new File(filePath);
-        disposables.add(TestService.uploadMemberAttachment(file, new ProgressListener() {
-            @Override
-            public void onProgress(long progress, long total, boolean done, int count, int sum) {
-                EventBus.getDefault().post(new UploadProgress(progress, total, done));
-            }
-        })
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Consumer<String>() {
-                    @Override
-                    public void accept(String s) throws Exception {
-                        Log.i("", "");
-                        data.set(s);
-                    }
-                }, new Consumer<Throwable>() {
-                    @Override
-                    public void accept(Throwable throwable) throws Exception {
-                        Log.i("", "");
-                        data.set(throwable.getMessage());
-                    }
-                }));
+        // TODO: 2018/9/1
     }
 
     /**
@@ -231,27 +227,6 @@ public class MainActivity extends AppCompatActivity {
      * @param localMedia
      */
     private void upLoads(List<LocalMedia> localMedia) {
-//        disposables.add(TestService.uploadAttachments(localMedia, new ProgressListener() {
-//            @Override
-//            public void onProgress(long progress, long total, boolean done, int count, int sum) {
-//                EventBus.getDefault().post(new UploadProgress(progress, total, done, count, sum));
-//            }
-//        })
-//                .subscribeOn(Schedulers.io())
-//                .observeOn(AndroidSchedulers.mainThread())
-//                .subscribe(new Consumer<String>() {
-//                    @Override
-//                    public void accept(String s) throws Exception {
-//                        Log.i("", "");
-//                        data.set(s);
-//                    }
-//                }, new Consumer<Throwable>() {
-//                    @Override
-//                    public void accept(Throwable throwable) throws Exception {
-//                        Log.i("", "");
-//                        data.set(throwable.getMessage());
-//                    }
-//                }));
         List<String> paths = new ArrayList<>();
         for (LocalMedia media : localMedia) {
             paths.add(media.getPath());
@@ -322,37 +297,40 @@ public class MainActivity extends AppCompatActivity {
 //        binding.progressBar.setProgress(f);
     }
 
-    /**
-     * 正式下载附件的地方
-     *
-     * @param fileName
-     */
-    private void downloadFile(final String fileName) {
-        disposables.add(TestService.downloadAttaachments(fileName)
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Consumer<ResponseBody>() {
+    @SuppressLint("CheckResult")
+    private void downloadApk(final String fileName) {
+        rxPermissions.request(Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_EXTERNAL_STORAGE)
+                .subscribe(new Consumer<Boolean>() {
                     @Override
-                    public void accept(final ResponseBody responseBody) throws Exception {
-                        Log.i("", "");
-                        saveFile(responseBody, fileName);
+                    public void accept(Boolean aBoolean) throws Exception {
+                        if (aBoolean) {
+                            String path = "/pc6_soure/2018-5/com.frego.flashlight_1286.apk";
+                            AppDownloadManager.getInstance(MainActivity.this)
+                                    .setFileName(fileName)
+                                    .downloadApk(path);
+                        }
                     }
-                }, new Consumer<Throwable>() {
-                    @Override
-                    public void accept(Throwable throwable) throws Exception {
-                        Log.i("", "");
-                    }
-                }));
+                });
+
     }
 
-    private void downloadApk(String fileName) {
-        String path = "/pc6_soure/2018-5/com.frego.flashlight_1286.apk";
-        AppDownloadManager.getInstance(this).setFileName(fileName).downloadApk(path);
-    }
+    @SuppressLint("CheckResult")
+    private void downloadAttachment(final String fileName) {
+        rxPermissions.request(Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_EXTERNAL_STORAGE)
+                .subscribe(new Consumer<Boolean>() {
+                    @Override
+                    public void accept(Boolean aBoolean) throws Exception {
+                        if (aBoolean) {
+                            String path = "IMG_20180728_103505.jpg";
+                            AttachmentDownloadManager.getInstance(MainActivity.this)
+                                    .setFileName(fileName)
+                                    .downloadAttachment(path);
+                        }
+                    }
+                });
 
-    private void downloadAttachment(String fileName) {
-        String path = "IMG_20180728_103505.jpg";
-        AttachmentDownloadManager.getInstance(this).setFileName(fileName).downloadAttachment(path);
     }
 
     private File file;

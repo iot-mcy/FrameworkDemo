@@ -1,6 +1,7 @@
 package com.mcy.framework.service;
 
 import com.mcy.framework.BuildConfig;
+import com.mcy.framework.user.User;
 import com.mcy.framework.utils.ProgressListener;
 import com.mcy.framework.utils.ProgressResponseBody;
 
@@ -102,7 +103,7 @@ public class Server {
         @Override
         public Response intercept(Chain chain) throws IOException {
             Request request = chain.request();
-            Request authorised = request.newBuilder().header("Token", "mt-123-456-789").build();
+            Request authorised = request.newBuilder().header("Token", User.getInstance().getToken()).build();
             return chain.proceed(authorised);
         }
     };

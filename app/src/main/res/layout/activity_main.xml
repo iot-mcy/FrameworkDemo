@@ -58,6 +58,12 @@
         <Button
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:onClick="setOnClickByLogout"
+            android:text="注销" />
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:onClick="setOnClickByLog"
             android:text="清除LOG" />
 

@@ -1,6 +1,5 @@
 package com.mcy.framework.AttachmentDownload;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -24,7 +23,6 @@ import org.greenrobot.eventbus.ThreadMode;
 
 import java.io.File;
 
-import io.reactivex.functions.Consumer;
 import okhttp3.ResponseBody;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -82,11 +80,23 @@ public class AttachmentDownloadManager {
     /**
      * @param context
      */
-    public AttachmentDownloadManager(Context context) {
+    private AttachmentDownloadManager(Context context) {
         this.context = context;
         rxPermissions = new RxPermissions((FragmentActivity) context);
         EventBus.getDefault().register(this);
+        initProgressDialog();
     }
+
+    public void clear() {
+        context = null;
+        manager = null;
+        rxPermissions = null;
+        fileName = "";
+        if (dialog != null) {
+            dialog.dismiss();
+        }
+    }
+
 
     /**
      * 文件名称加后缀名
@@ -106,37 +116,23 @@ public class AttachmentDownloadManager {
      */
     @SuppressLint("CheckResult")
     public void downloadAttachment(final String path) {
-        rxPermissions.request(Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_EXTERNAL_STORAGE)
-                .subscribe(new Consumer<Boolean>() {
+        dialog.show();
+        AttachmentDownloadService.downloadAttachment(path, new ProgressListener() {
+            @Override
+            public void onProgress(long progress, long total, boolean done, int count, int sum) {
+                EventBus.getDefault().post(new AttachmentDownloadEntity(progress, total, count, sum, done));
+            }
+        })
+                .enqueue(new Callback<ResponseBody>() {
                     @Override
-                    public void accept(Boolean aBoolean) throws Exception {
-                        if (aBoolean) {
-                            initProgressDialog();
-                            AttachmentDownloadService.downloadAttachment(path, new ProgressListener() {
-                                @Override
-                                public void onProgress(long progress, long total, boolean done, int count, int sum) {
+                    public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
+                        saveAttachment(response.body());
+                    }
 
-                                    if (dialog.isShowing()) {
-                                        EventBus.getDefault().post(new AttachmentDownloadEntity(progress, total, count, sum, done));
-                                    }
-                                }
-                            })
-                                    .enqueue(new Callback<ResponseBody>() {
-                                        @Override
-                                        public void onResponse(Call<ResponseBody> call, Response<ResponseBody> response) {
-                                            saveAttachment(response.body());
-                                        }
-
-                                        @Override
-                                        public void onFailure(Call<ResponseBody> call, Throwable t) {
-                                            Log.i(TAG, "下载出错");
-                                            ToastManager.showToastShort(context, "下载出错");
-                                        }
-                                    });
-                        } else {
-                            Log.i(TAG, "权限被拒绝");
-                        }
+                    @Override
+                    public void onFailure(Call<ResponseBody> call, Throwable t) {
+                        Log.i(TAG, "下载出错");
+                        ToastManager.showToastShort(context, "下载出错");
                     }
                 });
     }
@@ -166,7 +162,7 @@ public class AttachmentDownloadManager {
                 .setView(view)
                 .setCancelable(false)
                 .create();
-        dialog.show();
+//        dialog.show();
     }
 
     private TextView tvValue;

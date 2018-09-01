@@ -1,6 +1,6 @@
 package com.mcy.framework.AppUpdate;
 
-import com.mcy.framework.service.Server;
+import com.mcy.framework.service.DownloadServer;
 import com.mcy.framework.utils.ProgressListener;
 
 import okhttp3.ResponseBody;
@@ -19,7 +19,7 @@ public class AppService {
      */
     private static AppServiceInterface serviceInterface(ProgressListener progressListener) {
         synchronized (AppServiceInterface.class) {
-            return Server.getService(AppServiceInterface.class, progressListener);
+            return DownloadServer.getService(AppServiceInterface.class, progressListener);
         }
     }
 
