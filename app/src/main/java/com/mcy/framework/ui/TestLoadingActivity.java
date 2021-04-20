@@ -2,12 +2,13 @@ package com.mcy.framework.ui;
 
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.annotation.NonNull;
-import android.support.v4.app.Fragment;
-import android.support.v4.app.FragmentManager;
-import android.support.v4.app.FragmentPagerAdapter;
-import android.support.v4.app.FragmentTransaction;
 import android.view.ViewGroup;
+
+import androidx.annotation.NonNull;
+import androidx.fragment.app.Fragment;
+import androidx.fragment.app.FragmentManager;
+import androidx.fragment.app.FragmentPagerAdapter;
+import androidx.fragment.app.FragmentTransaction;
 
 import com.mcy.framework.R;
 import com.mcy.framework.base.BaseActivity;
@@ -53,7 +54,8 @@ public class TestLoadingActivity extends BaseActivity {
         binding.viewPage.setOffscreenPageLimit(3);
     }
 
-    private ViewPagerAdapter adapter = new ViewPagerAdapter(getSupportFragmentManager());
+    private ViewPagerAdapter adapter = new ViewPagerAdapter(getSupportFragmentManager(),
+            FragmentPagerAdapter.BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT);
 
     private static class ViewPagerAdapter extends FragmentPagerAdapter {
         private FragmentManager mFragmentManager;
@@ -61,8 +63,8 @@ public class TestLoadingActivity extends BaseActivity {
         ArrayList<Fragment> fragments = new ArrayList<>();
         ArrayList<String> tabNames = new ArrayList<>();
 
-        public ViewPagerAdapter(FragmentManager fm) {
-            super(fm);
+        public ViewPagerAdapter(FragmentManager fm, int behavior) {
+            super(fm, behavior);
             mFragmentManager = fm;
         }
 

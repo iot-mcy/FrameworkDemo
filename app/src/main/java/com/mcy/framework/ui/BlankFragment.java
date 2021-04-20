@@ -2,7 +2,7 @@ package com.mcy.framework.ui;
 
 import android.os.Bundle;
 import android.os.Handler;
-import android.support.v4.app.Fragment;
+import androidx.fragment.app.Fragment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -72,12 +72,5 @@ public class BlankFragment extends BaseFragment {
     @Override
     protected void loadData() {
         Log.d("onDelayLoad", mParam1);
-        showTempView(ITempView.LOADING);
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                hintTempView();
-            }
-        }, 2000);
     }
 }
