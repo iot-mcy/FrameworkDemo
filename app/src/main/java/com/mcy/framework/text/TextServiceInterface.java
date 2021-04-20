@@ -6,6 +6,7 @@ import com.mcy.framework.user.User;
 
 import io.reactivex.Flowable;
 import io.reactivex.Observable;
+import io.reactivex.Single;
 import retrofit2.http.Body;
 import retrofit2.http.POST;
 import retrofit2.http.Path;
@@ -16,11 +17,11 @@ import retrofit2.http.Path;
 
 public interface TextServiceInterface {
 
-    @POST("/TradeService.svc/GetTradeQuotedPriceByID")
-    Observable<GetTradeQuotedPriceByID> getTradeQuotedPriceList(@Body JSONObject object);
+    @POST("/DeepLearningActitviy.svc/GetPublishActivityList")
+    Single<String> getPublishActivityList(@Body JSONObject object);
 
     @POST("/TradeService.svc/GetTradeQuotedPriceByID")
-    Flowable<GetTradeQuotedPriceByID> getTradeQuotedPriceList2(@Body JSONObject object);
+    Flowable<TradeQuotedPrice> getTradeQuotedPriceList2(@Body JSONObject object);
 
     @POST("/user.svc/getUserByID/{userID}")
     Flowable<String> getUserByUserID(@Path("userID") int name);

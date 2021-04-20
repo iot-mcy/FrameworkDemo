@@ -11,77 +11,161 @@
             type="com.mcy.framework.MainActivity" />
     </data>
 
-    <LinearLayout
+    <android.support.v4.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:orientation="vertical">
+        android:scrollbars="vertical">
 
-        <Button
-            android:id="@+id/bt_select"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="setOnClickByPhoto"
-            android:text="选图" />
-
-        <ImageView
-            android:id="@+id/imageView"
-            android:layout_width="88dp"
-            android:layout_height="88dp"
-            android:scaleType="centerCrop"
-            app:srcCompat="@mipmap/ic_launcher" />
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="setOnClickByUpload"
-            android:text="上传附件" />
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="setOnClickByUploads"
-            android:text="上传多个附件" />
-
-        <Button
-            android:id="@+id/bt_download"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="setOnClickByDownload"
-            android:text="下载附件" />
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="setOnClickByLogin"
-            android:text="登录" />
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="setOnClickByLogout"
-            android:text="注销" />
-
-        <Button
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:onClick="setOnClickByLog"
-            android:text="清除LOG" />
-
-        <ProgressBar
-            android:id="@+id/progressBar"
-            style="?android:attr/progressBarStyleHorizontal"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:max="100" />
+            android:layout_height="match_parent"
+            android:orientation="vertical">
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@{activity.data}"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintLeft_toLeftOf="parent"
-            app:layout_constraintRight_toRightOf="parent"
-            app:layout_constraintTop_toTopOf="parent" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
-    </LinearLayout>
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:onClick="setOnClickByError"
+                    android:text="net_error" />
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:onClick="setOnClickByDataNull"
+                    android:text="data_null" />
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:onClick="setOnClickByLoading"
+                    android:text="loading" />
+            </LinearLayout>
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="setOnClickByTestLoading"
+                android:text="test_loading" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="clearAllRequest"
+                android:text="取消请求" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testRxJava1"
+                android:text="测试RxJava1" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testRxJava2"
+                android:text="测试RxJava2" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testRxJava3"
+                android:text="测试RxJava3" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testRxJava4"
+                android:text="测试RxJava4" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="testRxJava5"
+                android:text="测试RxJava5" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="setOnClickByRxJavaFlowable"
+                android:text="RxJavaFlowable" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="getPublishActivityList"
+                android:text="getPublishActivityList" />
+
+            <Button
+                android:id="@+id/bt_select"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="setOnClickByPhoto"
+                android:text="选图" />
+
+            <ImageView
+                android:id="@+id/imageView"
+                android:layout_width="88dp"
+                android:layout_height="88dp"
+                android:scaleType="centerCrop"
+                app:srcCompat="@mipmap/ic_launcher" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="setOnClickByUpload"
+                android:text="上传附件" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="setOnClickByUploads"
+                android:text="上传多个附件" />
+
+            <Button
+                android:id="@+id/bt_download"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="setOnClickByDownload"
+                android:text="下载附件" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="setOnClickByLogin"
+                android:text="登录" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="setOnClickByLogout"
+                android:text="注销" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:onClick="setOnClickByLog"
+                android:text="清除LOG" />
+
+            <ProgressBar
+                android:id="@+id/progressBar"
+                style="?android:attr/progressBarStyleHorizontal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="100" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@{activity.data}"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintLeft_toLeftOf="parent"
+                app:layout_constraintRight_toRightOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+        </LinearLayout>
+    </android.support.v4.widget.NestedScrollView>
 </layout>

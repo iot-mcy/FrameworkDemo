@@ -7,6 +7,7 @@ import com.mcy.framework.user.User;
 
 import io.reactivex.Flowable;
 import io.reactivex.Observable;
+import io.reactivex.Single;
 
 /**
  * 作者 mcy
@@ -23,16 +24,12 @@ public class TestService {
         }
     }
 
-
-    public static Observable<GetTradeQuotedPriceByID> getData1() {
-        JSONObject object = new JSONObject();
-        object.put("ID", 1000);
-
+    public static Single<String> getPublishActivityList(JSONObject object) {
         return textService()
-                .getTradeQuotedPriceList(object);
+                .getPublishActivityList(object);
     }
 
-    public static Flowable<GetTradeQuotedPriceByID> getData2() {
+    public static Flowable<TradeQuotedPrice> getData2() {
         JSONObject object = new JSONObject();
         object.put("ID", 1000);
 

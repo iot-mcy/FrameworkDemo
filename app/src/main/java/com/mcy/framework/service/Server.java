@@ -2,8 +2,6 @@ package com.mcy.framework.service;
 
 import com.mcy.framework.BuildConfig;
 import com.mcy.framework.user.User;
-import com.mcy.framework.utils.ProgressListener;
-import com.mcy.framework.utils.ProgressResponseBody;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
@@ -20,6 +18,8 @@ import retrofit2.converter.fastjson.FastJsonConverterFactory;
  * 作者 mcy
  * 日期 2018/8/7 17:34
  * 请求服务
+ *
+ * @author mcy
  */
 public class Server {
 
@@ -34,14 +34,13 @@ public class Server {
     private transient Retrofit retrofit;
 
     /**
-     * @param progressListener
      * @return
      */
-    private static Server getInstance(ProgressListener progressListener) {
+    private static Server getInstance() {
         if (sInstance == null) {
             synchronized (Server.class) {
                 if (sInstance == null) {
-                    sInstance = new Server(progressListener);
+                    sInstance = new Server();
                 }
             }
         }
@@ -49,50 +48,36 @@ public class Server {
     }
 
     /**
-     * @param progressListener
+     *
      */
-    private Server(ProgressListener progressListener) {
-        retrofit = newRetrofit(progressListener);
+    private Server() {
+        retrofit = newRetrofit();
     }
 
     /**
-     * @param progressListener
      * @return
      */
-    private Retrofit newRetrofit(ProgressListener progressListener) {
+    private Retrofit newRetrofit() {
         String baseUrl = "http://" + BuildConfig.IP + ":" + BuildConfig.PORT;
-        String url = "http://acj3.pc6.com";
         return new Retrofit.Builder()
                 .baseUrl(baseUrl)
-                .client(newClientBuilder(progressListener).build())
+                .client(newClientBuilder().build())
                 .addConverterFactory(FastJsonConverterFactory.create())
                 .addCallAdapterFactory(RxJava2CallAdapterFactory.create())
                 .build();
     }
 
     /**
-     * @param progressListener
      * @return
      */
-    private OkHttpClient.Builder newClientBuilder(final ProgressListener progressListener) {
-        long timeOut = 1000 * 60 * 60;//目前设置1个小时，防止上下传附件过大是超时，可以考虑其它办法
+    private OkHttpClient.Builder newClientBuilder() {
+        //60秒
+        long timeOut = 60;
         OkHttpClient.Builder builder = new OkHttpClient.Builder()
-                .readTimeout(timeOut, TimeUnit.MILLISECONDS)
-                .connectTimeout(timeOut, TimeUnit.MILLISECONDS)
-                .writeTimeout(timeOut, TimeUnit.MILLISECONDS)
+                .readTimeout(timeOut, TimeUnit.SECONDS)
+                .connectTimeout(timeOut, TimeUnit.SECONDS)
+                .writeTimeout(timeOut, TimeUnit.SECONDS)
                 .addInterceptor(interceptor);
-
-        if (progressListener != null) {//用于下载监听进度
-            builder.addNetworkInterceptor(new Interceptor() {
-                @Override
-                public Response intercept(Chain chain) throws IOException {
-                    okhttp3.Response originalResponse = chain.proceed(chain.request());
-                    return originalResponse.newBuilder()
-                            .body(new ProgressResponseBody(originalResponse.body(), progressListener))
-                            .build();
-                }
-            });
-        }
         return builder;
     }
 
@@ -121,16 +106,6 @@ public class Server {
      * @return
      */
     public static <T> T getService(Class<T> tClass) {
-        return getInstance(null).getRetrofit().create(tClass);
-    }
-
-    /**
-     * @param tClass
-     * @param progressListener 用于下载监听进度
-     * @param <T>
-     * @return
-     */
-    public static <T> T getService(Class<T> tClass, ProgressListener progressListener) {
-        return getInstance(progressListener).getRetrofit().create(tClass);
+        return getInstance().getRetrofit().create(tClass);
     }
 }

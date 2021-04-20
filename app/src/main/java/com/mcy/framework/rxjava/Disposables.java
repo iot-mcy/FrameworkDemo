@@ -23,7 +23,9 @@ public final class Disposables {
     private void clearDisposed() {
         for (final Iterator<Disposable> it = disposables.iterator(); it.hasNext(); ) {
             final Disposable disposable = it.next();
-            if (disposable == null || disposable.isDisposed()) it.remove();
+            if (disposable == null || disposable.isDisposed()) {
+                it.remove();
+            }
         }
     }
 
@@ -44,7 +46,9 @@ public final class Disposables {
 
     public void disposeAll() {
         for (final Disposable disposable : disposables) {
-            if (disposable == null || disposable.isDisposed()) continue;
+            if (disposable == null || disposable.isDisposed()) {
+                continue;
+            }
             disposable.dispose();
         }
         disposables.clear();

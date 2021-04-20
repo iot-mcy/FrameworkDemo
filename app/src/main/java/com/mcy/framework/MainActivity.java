@@ -4,16 +4,17 @@ import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.Intent;
-import android.databinding.DataBindingUtil;
 import android.databinding.ObservableField;
 import android.os.Build;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
+import android.os.Handler;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.Toast;
 
 import com.alibaba.fastjson.JSON;
+import com.alibaba.fastjson.JSONObject;
 import com.bumptech.glide.Glide;
 import com.luck.picture.lib.PictureSelector;
 import com.luck.picture.lib.config.PictureConfig;
@@ -23,50 +24,74 @@ import com.mcy.framework.AppUpdate.AppDownloadManager;
 import com.mcy.framework.AttachmentDownload.AttachmentDownloadManager;
 import com.mcy.framework.AttachmentUpload.AttachmentUploadManager;
 import com.mcy.framework.AttachmentUpload.UploadListener;
-import com.mcy.framework.databinding.ActivityMainBinding;
-import com.mcy.framework.rxjava.Disposables;
-import com.mcy.framework.text.GetTradeQuotedPriceByID;
+import com.mcy.framework.base.BaseActivity;
 import com.mcy.framework.baseEntity.ResponseEntity;
+import com.mcy.framework.databinding.ActivityMainBinding;
+import com.mcy.framework.temp.ITempView;
 import com.mcy.framework.text.TestService;
+import com.mcy.framework.text.TradeQuotedPrice;
+import com.mcy.framework.ui.TestLoadingActivity;
 import com.mcy.framework.user.User;
 import com.mcy.framework.utils.DownloadProgress;
 import com.mcy.framework.utils.FileUtils;
 import com.mcy.framework.utils.ToastManager;
 import com.mcy.framework.utils.UploadProgress;
-import com.tbruyelle.rxpermissions2.RxPermissions;
 
-import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
+import org.reactivestreams.Subscriber;
+import org.reactivestreams.Subscription;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
+import io.reactivex.BackpressureStrategy;
+import io.reactivex.Flowable;
+import io.reactivex.FlowableEmitter;
+import io.reactivex.FlowableOnSubscribe;
+import io.reactivex.Observable;
+import io.reactivex.ObservableEmitter;
+import io.reactivex.ObservableOnSubscribe;
+import io.reactivex.ObservableSource;
+import io.reactivex.Observer;
 import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.BiFunction;
 import io.reactivex.functions.Consumer;
+import io.reactivex.functions.Function;
 import io.reactivex.schedulers.Schedulers;
 import okhttp3.ResponseBody;
 
 import static com.luck.picture.lib.config.PictureMimeType.ofAll;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends BaseActivity {
+    private static final String TAG = MainActivity.class.getSimpleName();
 
     public ObservableField<String> data = new ObservableField<>("hello world!");
 
     private ActivityMainBinding binding;
 
-    private Disposables disposables = new Disposables();
-
-    private RxPermissions rxPermissions;
+    private CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        binding = DataBindingUtil.setContentView(this, R.layout.activity_main);
+        testLoading();
+    }
+
+    @Override
+    protected int setLayoutId() {
+        return R.layout.activity_main;
+    }
+
+    @Override
+    protected void initView() {
+        binding = (ActivityMainBinding) viewDataBinding;
         binding.setActivity(this);
-        rxPermissions = new RxPermissions(this);
-        EventBus.getDefault().register(this);
+
         binding.progressBar.setMax(100);
     }
 
@@ -81,22 +106,43 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        disposables.disposeAll();
-        EventBus.getDefault().unregister(this);
+        compositeDisposable.dispose();
         AttachmentDownloadManager.getInstance(this).clear();
     }
 
-    private void getData1() {
-        disposables.add(TestService.getData1()
+    @Override
+    public void onBtTempClick(View view, int type) {
+        super.onBtTempClick(view, type);
+        testLoading();
+    }
+
+    private void testLoading() {
+        showTempView(ITempView.LOADING);
+        new Handler().postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                hintTempView();
+            }
+        }, 1000);
+    }
+
+    public void clearAllRequest(View view) {
+        compositeDisposable.dispose();
+    }
+
+    public void getPublishActivityList(View view) {
+        JSONObject object = new JSONObject();
+        object.put("CropID", 4005);
+        object.put("PhoneDeviceID", "");
+        compositeDisposable.add(TestService.getPublishActivityList(object)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Consumer<GetTradeQuotedPriceByID>() {
+                .subscribe(new Consumer<String>() {
                     @Override
-                    public void accept(GetTradeQuotedPriceByID getTradeQuotedPriceByID) throws Exception {
-                        if (getTradeQuotedPriceByID != null) {
-                            String json = JSON.toJSONString(getTradeQuotedPriceByID);
-                            Toast.makeText(MainActivity.this, "成功\n" + json, Toast.LENGTH_LONG).show();
-                            data.set(json);
+                    public void accept(String response) throws Exception {
+                        if (!TextUtils.isEmpty(response)) {
+                            Log.d(TAG, response);
+                            data.set(response);
                         } else {
                             Toast.makeText(MainActivity.this, "失败\n", Toast.LENGTH_LONG).show();
                         }
@@ -110,12 +156,12 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getData2() {
-        disposables.add(TestService.getData2()
+        compositeDisposable.add(TestService.getData2()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Consumer<GetTradeQuotedPriceByID>() {
+                .subscribe(new Consumer<TradeQuotedPrice>() {
                     @Override
-                    public void accept(GetTradeQuotedPriceByID getTradeQuotedPriceByID) throws Exception {
+                    public void accept(TradeQuotedPrice getTradeQuotedPriceByID) throws Exception {
                         if (getTradeQuotedPriceByID != null) {
                             String json = JSON.toJSONString(getTradeQuotedPriceByID);
                             Toast.makeText(MainActivity.this, "成功\n" + json, Toast.LENGTH_LONG).show();
@@ -134,7 +180,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void getUserByUsername(int userID) {
-        disposables.add(TestService.getUserByUserID(userID)
+        compositeDisposable.add(TestService.getUserByUserID(userID)
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Consumer<String>() {
@@ -151,29 +197,20 @@ public class MainActivity extends AppCompatActivity {
                 }));
     }
 
-    /**
-     * 登录
-     *
-     * @param view
-     */
-    public void setOnClickByLogin(View view) {
-        disposables.add(TestService.login("mcy", "123456")
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(new Consumer<ResponseEntity<User>>() {
-                    @Override
-                    public void accept(ResponseEntity<User> userResponseEntity) throws Exception {
-                        Log.i("", "");
-                        data.set(JSON.toJSONString(userResponseEntity));
-                        User.updateCurrentUser(userResponseEntity.getData());
-                    }
-                }, new Consumer<Throwable>() {
-                    @Override
-                    public void accept(Throwable throwable) throws Exception {
-                        Log.i("", "");
-                        data.set(throwable.getMessage());
-                    }
-                }));
+    public void setOnClickByError(View view) {
+        showTempView(ITempView.ERROR);
+    }
+
+    public void setOnClickByDataNull(View view) {
+        showTempView(ITempView.DATA_NULL);
+    }
+
+    public void setOnClickByLoading(View view) {
+        showTempView(ITempView.LOADING);
+    }
+
+    public void setOnClickByTestLoading(View view) {
+        startActivity(new Intent(this, TestLoadingActivity.class));
     }
 
 
@@ -182,8 +219,33 @@ public class MainActivity extends AppCompatActivity {
      *
      * @param view
      */
+    public void setOnClickByLogin(View view) {
+        compositeDisposable.add(TestService.login("mcy", "123456")
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Consumer<ResponseEntity<User>>() {
+                    @Override
+                    public void accept(ResponseEntity<User> userResponseEntity) {
+                        Log.i("", "");
+                        data.set(JSON.toJSONString(userResponseEntity));
+                        User.updateCurrentUser(userResponseEntity.getData());
+                    }
+                }, new Consumer<Throwable>() {
+                    @Override
+                    public void accept(Throwable throwable) {
+                        Log.i("", "");
+                        data.set(throwable.getMessage());
+                    }
+                }));
+    }
+
+    /**
+     * 登录
+     *
+     * @param view
+     */
     public void setOnClickByLogout(View view) {
-        disposables.add(TestService.logout()
+        compositeDisposable.add(TestService.logout()
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(new Consumer<String>() {
@@ -416,7 +478,9 @@ public class MainActivity extends AppCompatActivity {
                 // 图片、视频、音频选择结果回调
                 List<LocalMedia> selectList = PictureSelector.obtainMultipleResult(data);
                 localMedia = selectList;
-                Glide.with(this).load(localMedia.get(0).getPath()).into(binding.imageView);
+                if (localMedia != null && localMedia.size() > 0) {
+                    Glide.with(this).load(localMedia.get(0).getPath()).into(binding.imageView);
+                }
                 // 例如 LocalMedia 里面返回三种path
                 // 1.media.getPath(); 为原图path
                 // 2.media.getCutPath();为裁剪后path，需判断media.isCut();是否为true  注意：音视频除外
@@ -425,7 +489,270 @@ public class MainActivity extends AppCompatActivity {
 //                    adapter.setList(selectList);
 //                    adapter.notifyDataSetChanged();
                 break;
+            default:
+                break;
         }
     }
 
+    private Disposable disposable;
+
+    public void testRxJava1(View view) {
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                Log.d(TAG, "Observable thread is : " + Thread.currentThread().getName());
+                emitter.onNext(1);
+//                emitter.onNext(2);
+//                emitter.onNext(3);
+//                emitter.onComplete();
+//                emitter.onNext(4);
+            }
+        }).subscribeOn(Schedulers.newThread())
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .doOnNext(new Consumer<Integer>() {
+                    @Override
+                    public void accept(Integer integer) throws Exception {
+                        Log.d(TAG, "(mainThread) thread is : " + Thread.currentThread().getName());
+                        Log.d(TAG, "accept：" + integer);
+                    }
+                })
+                .observeOn(Schedulers.io())
+                .subscribe(new Observer<Integer>() {
+                    @Override
+                    public void onSubscribe(Disposable d) {
+                        Log.d(TAG, "onSubscribe");
+                        disposable = d;
+                    }
+
+                    @Override
+                    public void onNext(Integer integer) {
+                        Log.d(TAG, "Observable thread is : " + Thread.currentThread().getName());
+                        Log.d(TAG, "onNext：" + integer);
+                        if (integer == 2) {
+                            Log.d(TAG, "dispose");
+                            disposable.dispose();
+                            Log.d(TAG, "isDisposed：" + disposable.isDisposed());
+                        }
+                    }
+
+                    @Override
+                    public void onError(Throwable e) {
+                        Log.d(TAG, e.getMessage());
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        Log.d(TAG, "onComplete");
+                    }
+                });
+    }
+
+    @SuppressLint("CheckResult")
+    public void testRxJava2(View view) {
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                emitter.onNext(1);
+                emitter.onNext(2);
+                emitter.onNext(3);
+            }
+        }).map(new Function<Integer, String>() {
+            @Override
+            public String apply(Integer integer) throws Exception {
+                return "改变后：" + integer;
+            }
+        }).subscribe(new Consumer<String>() {
+            @Override
+            public void accept(String s) throws Exception {
+                Log.d(TAG, s);
+            }
+        }, new Consumer<Throwable>() {
+            @Override
+            public void accept(Throwable throwable) throws Exception {
+                Log.d(TAG, throwable.getMessage());
+            }
+        });
+    }
+
+    @SuppressLint("CheckResult")
+    public void testRxJava3(View view) {
+        List<String> list = new ArrayList<String>() {{
+            add("A");
+            add("B");
+        }};
+        Observable.just(list)
+                .flatMap(new Function<List<String>, ObservableSource<String>>() {
+                    @Override
+                    public ObservableSource<String> apply(List<String> list) throws Exception {
+                        List<String> strings = new ArrayList<>();
+                        for (String str : list) {
+                            strings.add(str + "0");
+                        }
+                        return Observable.fromIterable(strings);
+                    }
+                })
+                .subscribe(new Consumer<String>() {
+                    @Override
+                    public void accept(String s) throws Exception {
+                        Log.d(TAG, s);
+                    }
+                });
+
+        Observable.just(list).map(new Function<List<String>, String>() {
+            @Override
+            public String apply(List<String> list) throws Exception {
+                String json = JSON.toJSONString(list);
+                return json;
+            }
+        }).subscribe(new Consumer<String>() {
+            @Override
+            public void accept(String s) throws Exception {
+                Log.d(TAG, s);
+            }
+        });
+
+        Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                emitter.onNext(1);
+                emitter.onNext(2);
+                emitter.onNext(3);
+            }
+        }).flatMap(new Function<Integer, ObservableSource<String>>() {
+
+            @Override
+            public ObservableSource<String> apply(final Integer integer) throws Exception {
+                List<String> list = new ArrayList<String>() {{
+                    add("A" + integer);
+                    add("B" + integer);
+                }};
+                return Observable.fromIterable(list).delay(1, TimeUnit.SECONDS);
+            }
+        }).subscribe(new Consumer<String>() {
+            @Override
+            public void accept(String s) throws Exception {
+                Log.d(TAG, s);
+            }
+        }, new Consumer<Throwable>() {
+            @Override
+            public void accept(Throwable throwable) throws Exception {
+                Log.d(TAG, throwable.getMessage());
+            }
+        });
+    }
+
+    @SuppressLint("CheckResult")
+    public void testRxJava4(View view) {
+        Observable<Integer> observable1 = Observable.create(new ObservableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(ObservableEmitter<Integer> emitter) throws Exception {
+                Log.d(TAG, "emitter 1");
+                emitter.onNext(1);
+                Log.d(TAG, "emitter 2");
+                emitter.onNext(2);
+                Log.d(TAG, "emitter 3");
+                emitter.onNext(3);
+                Log.d(TAG, "emitter 4");
+                emitter.onNext(4);
+                Log.d(TAG, "emitter onComplete1");
+                emitter.onComplete();
+            }
+        }).subscribeOn(Schedulers.io());
+
+        Observable<String> observable2 = Observable.create(new ObservableOnSubscribe<String>() {
+            @Override
+            public void subscribe(ObservableEmitter<String> emitter) throws Exception {
+                Log.d(TAG, "emitter A");
+                emitter.onNext("A");
+                Log.d(TAG, "emitter B");
+                emitter.onNext("B");
+                Log.d(TAG, "emitter C");
+                emitter.onNext("C");
+                Log.d(TAG, "emitter onComplete2");
+                emitter.onComplete();
+            }
+        }).subscribeOn(Schedulers.io());
+
+        Observable.zip(observable1, observable2, new BiFunction<Integer, String, String>() {
+            @Override
+            public String apply(Integer integer, String s) throws Exception {
+                return integer + s;
+            }
+        }).subscribe(new Observer<String>() {
+            @Override
+            public void onSubscribe(Disposable d) {
+
+            }
+
+            @Override
+            public void onNext(String s) {
+                Log.d(TAG, s);
+            }
+
+            @Override
+            public void onError(Throwable e) {
+
+            }
+
+            @Override
+            public void onComplete() {
+
+            }
+        });
+    }
+
+    private Subscription subscription;
+
+    @SuppressLint("CheckResult")
+    public void testRxJava5(View view) {
+        Flowable.create(new FlowableOnSubscribe<Integer>() {
+            @Override
+            public void subscribe(FlowableEmitter<Integer> emitter) throws Exception {
+                Log.d(TAG, "emitter 1");
+                emitter.onNext(1);
+                Thread.sleep(1000);
+                Log.d(TAG, "emitter 2");
+                emitter.onNext(2);
+                Thread.sleep(1000);
+                Log.d(TAG, "emitter 3");
+                emitter.onNext(3);
+                Thread.sleep(1000);
+                Log.d(TAG, "emitter onComplete");
+                emitter.onComplete();
+            }
+        }, BackpressureStrategy.ERROR)
+                .subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe(new Subscriber<Integer>() {
+                    @Override
+                    public void onSubscribe(Subscription s) {
+                        Log.d(TAG, "onSubscribe");
+                        subscription = s;
+                        subscription.request(1);
+                    }
+
+                    @Override
+                    public void onNext(Integer integer) {
+                        Log.d(TAG, "onNext " + integer);
+                        subscription.request(1);
+                    }
+
+                    @Override
+                    public void onError(Throwable t) {
+                        Log.d(TAG, "onError");
+                    }
+
+                    @Override
+                    public void onComplete() {
+                        Log.d(TAG, "onComplete");
+                    }
+                });
+    }
+
+    public void setOnClickByRxJavaFlowable(View view) {
+        if (subscription != null) {
+            subscription.request(1);
+        }
+    }
 }

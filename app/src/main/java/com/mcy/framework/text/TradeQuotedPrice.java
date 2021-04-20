@@ -6,7 +6,7 @@ import java.io.Serializable;
  * Created by mcy on 2018/3/23.
  */
 
-public class GetTradeQuotedPriceByID implements Serializable{
+public class TradeQuotedPrice implements Serializable{
 
     /**
      * ID : 1000
